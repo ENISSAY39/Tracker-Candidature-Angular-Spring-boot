@@ -29,14 +29,17 @@ Application web **mono-utilisateur, en local**, qui remplace mon classeur Excel 
 ## Commandes
 
 ```bash
-docker compose up -d postgres                 # base de dev → 127.0.0.1:5432
-cd backend && ./mvnw spring-boot:run          # API → http://localhost:8080
+docker compose up -d                          # toute l'appli en conteneurs (db, back, front) → http://localhost:8090
+docker compose up -d postgres                 # base seule pour le dev → 127.0.0.1:5432
+cd backend && ./mvnw spring-boot:run          # API → http://localhost:8081
 cd backend && ./mvnw verify                   # tous les tests (Docker doit tourner) ; une classe : ./mvnw test -Dtest=JobApplicationServiceTest
-cd frontend && npm start                      # ng serve → http://localhost:4200, proxy /api → :8080
+cd frontend && npm start                      # ng serve → http://localhost:4200, proxy /api → :8081
 cd frontend && npx ng test --no-watch         # Vitest, un seul passage ; cibler : --include "src/app/features/leads/**"
 cd frontend && npx ng build                   # doit passer sans erreur
 docker compose exec -T postgres pg_dump -U tracker tracker > data/backup.sql   # sauvegarde de la base
 ```
+
+Le port 8080 est pris sur le poste de dev (service Windows) : l'API locale écoute sur **8081** (`server.port`). Dans son conteneur elle écoute sur 8080, non publié sur l'hôte. En dev local, ne lancer que `postgres` pour éviter les conflits de port avec les conteneurs `backend` / `frontend`.
 
 `spring-boot:run` et `npm start` sont bloquants : les lancer en arrière-plan, ou me demander de le faire.
 
@@ -45,6 +48,7 @@ docker compose exec -T postgres pg_dump -U tracker tracker > data/backup.sql   #
 ```text
 tracker-candidatures/
 ├── CLAUDE.md  README.md  compose.yaml  .env.example  .gitignore
+├── .github/workflows/ci.yml        # CI GitHub Actions (build + tests + test de fumée Docker)
 ├── data/                           # ignoré par Git : classeur Excel réel, sauvegardes SQL
 ├── backend/                        # généré par Spring Initializr
 │   ├── pom.xml  mvnw  mvnw.cmd  Dockerfile
@@ -165,7 +169,7 @@ POST /import/excel                multipart `file`, option `?mode=replace`
 - Angular Material pour tous les composants (table triable, champs, datepicker, chips, dialog, snackbar). Couleurs via les variables `--mat-sys-*`, sauf la palette des statuts.
 - Appels HTTP uniquement dans un service `…-api.ts` par feature, jamais dans un composant. Types TypeScript calqués sur les `…Response` du backend.
 - Dates sans heure : chaîne `yyyy-MM-dd` de bout en bout ; ne jamais passer par `toISOString()` (le fuseau décale d'un jour).
-- Dev : `proxy.conf.json` envoie `/api` vers `http://localhost:8080` ; aucune configuration CORS côté backend.
+- Dev : `proxy.conf.json` envoie `/api` vers `http://localhost:8081` ; aucune configuration CORS côté backend.
 - Tests Vitest à côté du fichier (`*.spec.ts`), en priorité sur les services d'API et la logique d'affichage (tri, compteurs, alertes d'échéance).
 
 ## Import du classeur Excel
@@ -180,12 +184,13 @@ POST /import/excel                multipart `file`, option `?mode=replace`
 
 - Le classeur et la base contiennent mes **données personnelles réelles** : `data/`, `.env` et tout export restent hors Git. Tests et exemples : données fictives uniquement.
 - Ne jamais lancer `docker compose down -v`, `docker volume rm`, `DROP`, `TRUNCATE` ni `flyway clean` sur la base de dev sans mon accord explicite. Les tests passent uniquement par Testcontainers.
-- `compose.yaml` : image `postgres:18`, volume nommé monté sur `/var/lib/postgresql` (depuis PostgreSQL 18, ce n'est plus `/var/lib/postgresql/data`), ports publiés sur `127.0.0.1` seulement. Base, utilisateur et mot de passe de dev : `tracker`, surchargeables par `.env`.
+- `compose.yaml` : trois services **sans profil**, `docker compose up -d` démarre tout. `postgres` (image `postgres:18`, pas de Dockerfile, volume nommé monté sur `/var/lib/postgresql` — depuis PostgreSQL 18, ce n'est plus `/var/lib/postgresql/data` — publié sur `127.0.0.1:5432`), `backend` (Dockerfile multi-étapes, non publié sur l'hôte) et `frontend` (Dockerfile + nginx, publié sur `127.0.0.1:8090`, proxy `/api` → `backend:8080`). Ports publiés sur `127.0.0.1` seulement. Base, utilisateur et mot de passe de dev : `tracker`, surchargeables par `.env` (ignoré par Git ; seul `.env.example` est versionné).
+- **CI** (`.github/workflows/ci.yml`, GitHub Actions) : déclenchée sur tout push et sur les PR vers `main`. Job backend (`setup-java` Temurin 25, cache Maven, `./mvnw -B verify`), job frontend (`setup-node` 24, cache npm, `npm ci`, `npx ng test --no-watch`, `npx ng build`), job Docker (`docker compose build` puis test de fumée : `up -d`, attente de `http://localhost:8090`, `down`). Actions épinglées par version majeure, aucun secret, données fictives uniquement. Pas de CD : aucune image publiée, aucun déploiement.
 - Aucune authentification (usage local) : ne rien exposer hors de `127.0.0.1`.
 - Avancer par tranches verticales courtes (migration → entité → service → contrôleur → tests → écran) ; un commit par tranche, au format Conventional Commits.
 - Avant d'annoncer une tâche finie : tests de la partie touchée au vert (`./mvnw verify`, `npx ng test --no-watch`, `npx ng build`).
-- Ordre de construction : 1) socle (section Initialisation) 2) schéma + entités 3) API candidatures, groupes, statuts 4) import Excel 5) écran liste (table, compteurs, filtres, alertes) 6) fiche, formulaire, changement de statut 7) groupes, offres, écran d'import 8) empaquetage local (`Dockerfile` backend, `Dockerfile` + nginx frontend, profil `app` dans `compose.yaml` → `docker compose --profile app up -d` sur `http://localhost:8090`).
-- Hors périmètre tant que je ne le demande pas : authentification, historique des statuts, pièces jointes, export Excel, notifications, pagination serveur, CI/CD, déploiement distant.
+- Ordre de construction : 1) socle (section Initialisation, + `compose.yaml` complet avec les Dockerfiles et la CI) 2) schéma + entités 3) API candidatures, groupes, statuts 4) import Excel 5) écran liste (table, compteurs, filtres, alertes) 6) fiche, formulaire, changement de statut 7) groupes, offres, écran d'import 8) `README.md` et recette finale en conteneurs (`docker compose up -d` sur `http://localhost:8090`).
+- Hors périmètre tant que je ne le demande pas : authentification, historique des statuts, pièces jointes, export Excel, notifications, pagination serveur, CD (publication d'images, déploiement distant).
 
 ## Initialisation (une seule fois — supprimer cette section une fois le socle commité)
 
@@ -200,7 +205,7 @@ cd frontend && npx ng add @angular/material --defaults --skip-confirmation
 ```
 
 - Ne pas écrire `pom.xml` ni `package.json` à la main : partir de ces générateurs, puis ajouter `poi-ooxml`.
-- Ensuite : fixer `postgres:18` dans `TestcontainersConfiguration`, créer `compose.yaml`, `.env.example`, le `.gitignore` racine (`data/`, `.env`) et `proxy.conf.json`, puis brancher le proxy sur `npm start`.
+- Ensuite : fixer `postgres:18` dans `TestcontainersConfiguration`, `server.port: 8081` dans `application.yaml`, créer `compose.yaml` (trois services), les deux Dockerfiles, `nginx.conf`, `.env.example`, le `.gitignore` racine (`data/`, `.env`), `.github/workflows/ci.yml` et `proxy.conf.json`, puis brancher le proxy sur `npm start`.
 
 ## Agent skills
 
