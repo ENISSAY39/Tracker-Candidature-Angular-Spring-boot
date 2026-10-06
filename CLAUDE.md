@@ -1,5 +1,7 @@
 # Tracker de candidatures
 
+
+
 <!-- Notes de maintenance (commentaire HTML : non injecté dans le contexte de Claude Code).
 - Fichier de démarrage pour un dépôt vide. Une fois le socle généré : supprimer la section « Initialisation »
   et élaguer ce qui se lit dans le code (arborescence, routes) pour rester sous 200 lignes.
@@ -9,6 +11,10 @@ Application web **mono-utilisateur, en local**, qui remplace mon classeur Excel 
 
 - Code, schéma SQL et API en **anglais** ; interface et messages utilisateur en **français**.
 - Me répondre en français, de façon concise.
+
+
+## Warning !!! 
+- Ne jamais se mettre en Co Author dans les comitt, push, PR, issues etc
 
 ## Stack
 
@@ -195,3 +201,17 @@ cd frontend && npx ng add @angular/material --defaults --skip-confirmation
 
 - Ne pas écrire `pom.xml` ni `package.json` à la main : partir de ces générateurs, puis ajouter `poi-ooxml`.
 - Ensuite : fixer `postgres:18` dans `TestcontainersConfiguration`, créer `compose.yaml`, `.env.example`, le `.gitignore` racine (`data/`, `.env`) et `proxy.conf.json`, puis brancher le proxy sur `npm start`.
+
+## Agent skills
+
+### Issue tracker
+
+Les issues vivent dans GitHub Issues du dépôt (CLI `gh`). Voir `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Vocabulaire par défaut : `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. Voir `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context : `GLOSSARY.md` et `docs/adr/` à la racine. Voir `docs/agents/domain.md`.
