@@ -7,7 +7,7 @@
   et élaguer ce qui se lit dans le code (arborescence, routes) pour rester sous 200 lignes.
 - Versions vérifiées le 06/10/2026 : Spring Boot 4.1.1, Angular 22.2, Node 24 LTS, PostgreSQL 18. -->
 
-Application web **mono-utilisateur, en local**, qui remplace mon classeur Excel de suivi de candidatures (stage de fin d'études) : candidatures numérotées, rattachées à un groupe employeur, avec statut, échéance de relance et notes de suivi, plus un vivier d'offres à évaluer ou abandonnées.
+Description du projet et stack (versions, outils) : voir `README.md`.
 
 - Code, schéma SQL et API en **anglais** ; interface et messages utilisateur en **français**.
 - Me répondre en français, de façon concise.
@@ -19,13 +19,7 @@ Application web **mono-utilisateur, en local**, qui remplace mon classeur Excel 
 
 ## Stack
 
-- **Backend** : Java 25 (LTS), Spring Boot 4 (4.1 à ce jour : Web MVC, Data JPA, Validation, Flyway), Maven wrapper ; package racine `io.github.enissay39.tracker`.
-- **Base** : PostgreSQL 18 dans Docker Compose ; schéma géré par Flyway uniquement.
-- **Frontend** : Angular 22 (standalone, signals, zoneless), Angular Material 22 (thème M3), SCSS, TypeScript 6, npm.
-- **Tests** : JUnit, AssertJ, Mockito, Testcontainers (PostgreSQL) ; Vitest via `ng test`.
-- **Import Excel** : Apache POI (`poi-ooxml`).
-- **Poste de dev** : Windows, JDK 25, Node.js 24 LTS (≥ 24.15), Docker Desktop. Commandes écrites pour Git Bash (PowerShell : `./mvnw` → `.\mvnw.cmd`).
-- Volontairement absents : Lombok, MapStruct, Spring Security, H2, NgRx, Tailwind. Ne pas ajouter de dépendance sans me la proposer d'abord.
+Java 25 / Spring Boot 4 / PostgreSQL 18 / Angular 22 (détail dans `README.md`). Poste Windows, commandes pour Git Bash. Volontairement absents : Lombok, MapStruct, Spring Security, H2, NgRx, Tailwind. Ne pas ajouter de dépendance sans me la proposer d'abord.
 
 ## Commandes
 
@@ -194,9 +188,13 @@ POST /import/excel                multipart `file`, option `?mode=replace`
 - **Workflow Git** (jamais de commit ni de push sur `main`, y compris pour la documentation) :
   1. Créer une branche depuis `main` à jour : `git switch main && git pull && git switch -c <type>/<sujet>` (ex. `feat/backend-scaffold`, `docs/git-workflow`).
   2. Commiter sur la branche (Conventional Commits, sans co-auteur), puis la pousser : `git push -u origin <branche>`.
-  3. Ouvrir une PR vers `main` avec `gh pr create` (corps sans mention de co-auteur ni de Claude ; `Closes #n` pour lier l'issue).
-  4. **Je relis la PR** : ne jamais la fusionner ni la fermer, et ne pas pousser d'autres changements sans mon accord ; corriger sur la même branche si je demande des modifications.
-  5. Je fusionne sur `main` (merge depuis GitHub) ; ensuite seulement : `git switch main && git pull`, et suppression de la branche locale fusionnée.
+  3. Ouvrir une PR vers `main` avec `gh pr create` (corps sans mention de co-auteur ni de Claude).
+  4. **Lier la PR à son issue** (obligatoire quand elle en a une, y compris une sous-issue) et le dire dans le corps de la PR :
+     - la PR termine l'issue / sous-issue (critères d'acceptation remplis) : `Closes #n`, pour que la fusion la ferme ;
+     - la PR n'en fait qu'une partie : `Part of #n` (pas de `Closes`) ;
+     - sous-issue d'un parent : ajouter `Part of #parent` ; le parent n'est fermé (`Closes #parent`) que par la PR qui termine sa dernière sous-issue.
+  5. **Je relis la PR** : ne jamais la fusionner ni la fermer, et ne pas pousser d'autres changements sans mon accord ; corriger sur la même branche si je demande des modifications.
+  6. Je fusionne sur `main` (merge depuis GitHub) ; ensuite seulement : `git switch main && git pull`, et suppression de la branche locale fusionnée. Vérifier alors que l'issue est bien fermée (`gh issue view <n>`).
   - Une branche et une PR par issue / tranche. Pas de `push --force`, pas de `reset --hard`, pas de `git branch -f main` sans mon accord explicite.
 - Avant d'annoncer une tâche finie : tests de la partie touchée au vert (`./mvnw verify`, `npx ng test --no-watch`, `npx ng build`).
 - Ordre de construction : 1) socle (section Initialisation, + `compose.yaml` complet avec les Dockerfiles et la CI) 2) schéma + entités 3) API candidatures, groupes, statuts 4) import Excel 5) écran liste (table, compteurs, filtres, alertes) 6) fiche, formulaire, changement de statut 7) groupes, offres, écran d'import 8) `README.md` et recette finale en conteneurs (`docker compose up -d` sur `http://localhost:8090`).
