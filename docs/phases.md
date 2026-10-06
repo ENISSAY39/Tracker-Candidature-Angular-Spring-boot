@@ -1,17 +1,17 @@
 # Phases du projet
 
-Plan de construction du tracker de candidatures, dans l'ordre. Source : `CLAUDE.md` (« Ordre de construction »). Chaque phase avance par tranches verticales courtes (migration → entité → service → contrôleur → tests → écran), avec un commit par tranche au format Conventional Commits.
+Plan de construction du tracker de candidatures, dans l'ordre. Source : `CLAUDE.md` (« Ordre de construction »). Chaque phase avance par tranches verticales courtes (migration → entité → service → contrôleur → tests → écran), avec un commit par tranche au format Conventional Commits. Workflow Git : une branche et une PR par tranche, jamais de commit ni de push sur `main`, relecture et fusion par toi (détail dans `CLAUDE.md`, « Workflow Git »).
 
 Une phase est terminée quand les tests de la partie touchée sont au vert : `./mvnw verify`, `npx ng test --no-watch`, `npx ng build`.
 
 ## Phase 1 — Socle
 
 - [ ] Installer JDK 25 (`java -version` → 25, `JAVA_HOME` à jour) et lancer Docker Desktop
-- [ ] Générer le backend avec Spring Initializr (Java 25, Maven, `web`, `data-jpa`, `postgresql`, `flyway`, `validation`, `testcontainers`) ; vérifier les starters Spring Boot 4 et `flyway-database-postgresql`
+- [x] Générer le backend avec Spring Initializr (Java 25, Maven, `web`, `data-jpa`, `postgresql`, `flyway`, `validation`, `testcontainers`) ; vérifier les starters Spring Boot 4 et `flyway-database-postgresql`
 - [ ] Générer le frontend avec Angular CLI 22 (SCSS, routing, zoneless, sans SSR) puis ajouter Angular Material
-- [ ] Ajouter la dépendance `poi-ooxml` au `pom.xml`
-- [ ] `server.port: 8081` dans `application.yaml` (le 8080 est pris sur le poste de dev)
-- [ ] Fixer `postgres:18` dans `TestcontainersConfiguration`
+- [x] Ajouter la dépendance `poi-ooxml` au `pom.xml`
+- [x] `server.port: 8081` dans `application.yaml` (le 8080 est pris sur le poste de dev)
+- [x] Fixer `postgres:18` dans `TestcontainersConfiguration`
 - [ ] Créer `.env.example` et le `.gitignore` racine (`data/`, `.env`) ; seul `.env.example` est versionné
 - [ ] `Dockerfile` du backend (multi-étapes, JDK 25 puis JRE 25) et `Dockerfile` + `nginx.conf` du frontend (build Angular, proxy `/api` → `backend:8080`)
 - [ ] Créer `compose.yaml` sans profil : `postgres` (image `postgres:18`, volume nommé sur `/var/lib/postgresql`, `127.0.0.1:5432`), `backend` (non publié), `frontend` (`127.0.0.1:8090`)
@@ -19,8 +19,8 @@ Une phase est terminée quand les tests de la partie touchée sont au vert : `./
 - [ ] Créer `.github/workflows/ci.yml` : tout push et PR vers `main` ; jobs backend (`./mvnw -B verify`), frontend (`npm ci`, `ng test --no-watch`, `ng build`) et Docker (`docker compose build` + test de fumée sur `http://localhost:8090`) ; actions épinglées par version majeure, aucun secret
 - [ ] Vérifier en local : le backend démarre, le frontend compile, les tests générés passent, `docker compose up -d` démarre les trois conteneurs
 - [ ] Mettre à jour la section « Initialisation » de `CLAUDE.md` puis la supprimer
-- [ ] Commits (sans co-auteur) : backend + infra Docker, frontend, documentation, CI ; je ne pousse rien
-- [ ] Après ton push : CI verte sur GitHub (vérifiable avec `gh run list`)
+- [ ] Une branche + une PR par tranche (backend + infra Docker, frontend, documentation, CI), commits sans co-auteur
+- [ ] Après la fusion de chaque PR par toi : CI verte sur GitHub (vérifiable avec `gh run list`)
 
 ## Phase 2 — Schéma et entités
 

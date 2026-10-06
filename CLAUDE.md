@@ -15,6 +15,7 @@ Application web **mono-utilisateur, en local**, qui remplace mon classeur Excel 
 
 ## Warning !!! 
 - Ne jamais se mettre en Co Author dans les comitt, push, PR, issues etc
+- **Ne jamais commiter ni pousser directement sur `main`.** Workflow obligatoire pour toute modification (code ou docs), voir « Workflow Git » plus bas.
 
 ## Stack
 
@@ -40,6 +41,8 @@ docker compose exec -T postgres pg_dump -U tracker tracker > data/backup.sql   #
 ```
 
 Le port 8080 est pris sur le poste de dev (service Windows) : l'API locale écoute sur **8081** (`server.port`). Dans son conteneur elle écoute sur 8080, non publié sur l'hôte. En dev local, ne lancer que `postgres` pour éviter les conflits de port avec les conteneurs `backend` / `frontend`.
+
+Le `JAVA_HOME` système peut encore pointer sur un JDK 21 : vérifier `java -version` (25 attendu) ; JDK 25 est dans `C:\Program Files\Java\jdk-25.0.4.1` (Git Bash : `export JAVA_HOME="/c/Program Files/Java/jdk-25.0.4.1"; export PATH="$JAVA_HOME/bin:$PATH"`).
 
 `spring-boot:run` et `npm start` sont bloquants : les lancer en arrière-plan, ou me demander de le faire.
 
@@ -188,6 +191,13 @@ POST /import/excel                multipart `file`, option `?mode=replace`
 - **CI** (`.github/workflows/ci.yml`, GitHub Actions) : déclenchée sur tout push et sur les PR vers `main`. Job backend (`setup-java` Temurin 25, cache Maven, `./mvnw -B verify`), job frontend (`setup-node` 24, cache npm, `npm ci`, `npx ng test --no-watch`, `npx ng build`), job Docker (`docker compose build` puis test de fumée : `up -d`, attente de `http://localhost:8090`, `down`). Actions épinglées par version majeure, aucun secret, données fictives uniquement. Pas de CD : aucune image publiée, aucun déploiement.
 - Aucune authentification (usage local) : ne rien exposer hors de `127.0.0.1`.
 - Avancer par tranches verticales courtes (migration → entité → service → contrôleur → tests → écran) ; un commit par tranche, au format Conventional Commits.
+- **Workflow Git** (jamais de commit ni de push sur `main`, y compris pour la documentation) :
+  1. Créer une branche depuis `main` à jour : `git switch main && git pull && git switch -c <type>/<sujet>` (ex. `feat/backend-scaffold`, `docs/git-workflow`).
+  2. Commiter sur la branche (Conventional Commits, sans co-auteur), puis la pousser : `git push -u origin <branche>`.
+  3. Ouvrir une PR vers `main` avec `gh pr create` (corps sans mention de co-auteur ni de Claude ; `Closes #n` pour lier l'issue).
+  4. **Je relis la PR** : ne jamais la fusionner ni la fermer, et ne pas pousser d'autres changements sans mon accord ; corriger sur la même branche si je demande des modifications.
+  5. Je fusionne sur `main` (merge depuis GitHub) ; ensuite seulement : `git switch main && git pull`, et suppression de la branche locale fusionnée.
+  - Une branche et une PR par issue / tranche. Pas de `push --force`, pas de `reset --hard`, pas de `git branch -f main` sans mon accord explicite.
 - Avant d'annoncer une tâche finie : tests de la partie touchée au vert (`./mvnw verify`, `npx ng test --no-watch`, `npx ng build`).
 - Ordre de construction : 1) socle (section Initialisation, + `compose.yaml` complet avec les Dockerfiles et la CI) 2) schéma + entités 3) API candidatures, groupes, statuts 4) import Excel 5) écran liste (table, compteurs, filtres, alertes) 6) fiche, formulaire, changement de statut 7) groupes, offres, écran d'import 8) `README.md` et recette finale en conteneurs (`docker compose up -d` sur `http://localhost:8090`).
 - Hors périmètre tant que je ne le demande pas : authentification, historique des statuts, pièces jointes, export Excel, notifications, pagination serveur, CD (publication d'images, déploiement distant).
