@@ -1,19 +1,26 @@
 # Phases du projet
 
-Plan de construction du tracker de candidatures, dans l'ordre. Source : `CLAUDE.md` (« Ordre de construction »). Chaque phase avance par tranches verticales courtes (migration → entité → service → contrôleur → tests → écran), avec un commit par tranche au format Conventional Commits.
+Plan de construction du tracker de candidatures, dans l'ordre. Source : `CLAUDE.md` (« Ordre de construction »). Chaque phase avance par tranches verticales courtes (migration → entité → service → contrôleur → tests → écran), avec un commit par tranche au format Conventional Commits. Workflow Git : une branche et une PR par tranche, jamais de commit ni de push sur `main`, relecture et fusion par toi (détail dans `CLAUDE.md`, « Workflow Git »).
 
 Une phase est terminée quand les tests de la partie touchée sont au vert : `./mvnw verify`, `npx ng test --no-watch`, `npx ng build`.
 
 ## Phase 1 — Socle
 
-- [ ] Générer le backend avec Spring Initializr (Java 25, Maven, `web`, `data-jpa`, `postgresql`, `flyway`, `validation`, `testcontainers`)
+- [ ] Installer JDK 25 (`java -version` → 25, `JAVA_HOME` à jour) et lancer Docker Desktop
+- [x] Générer le backend avec Spring Initializr (Java 25, Maven, `web`, `data-jpa`, `postgresql`, `flyway`, `validation`, `testcontainers`) ; vérifier les starters Spring Boot 4 et `flyway-database-postgresql`
 - [ ] Générer le frontend avec Angular CLI 22 (SCSS, routing, zoneless, sans SSR) puis ajouter Angular Material
-- [ ] Ajouter la dépendance `poi-ooxml` au `pom.xml`
-- [ ] Créer `compose.yaml` (PostgreSQL 18, volume nommé sur `/var/lib/postgresql`, port sur `127.0.0.1`), `.env.example` et le `.gitignore` racine (`data/`, `.env`)
-- [ ] Fixer `postgres:18` dans `TestcontainersConfiguration`
-- [ ] Créer `proxy.conf.json` (`/api` → `http://localhost:8080`) et le brancher sur `npm start`
-- [ ] Vérifier que le backend démarre, que le frontend compile et que les tests de base passent
-- [ ] Supprimer la section « Initialisation » de `CLAUDE.md`, commiter le socle
+- [x] Ajouter la dépendance `poi-ooxml` au `pom.xml`
+- [x] `server.port: 8081` dans `application.yaml` (le 8080 est pris sur le poste de dev)
+- [x] Fixer `postgres:18` dans `TestcontainersConfiguration`
+- [ ] Créer `.env.example` et le `.gitignore` racine (`data/`, `.env`) ; seul `.env.example` est versionné
+- [ ] `Dockerfile` du backend (multi-étapes, JDK 25 puis JRE 25) et `Dockerfile` + `nginx.conf` du frontend (build Angular, proxy `/api` → `backend:8080`)
+- [ ] Créer `compose.yaml` sans profil : `postgres` (image `postgres:18`, volume nommé sur `/var/lib/postgresql`, `127.0.0.1:5432`), `backend` (non publié), `frontend` (`127.0.0.1:8090`)
+- [ ] Créer `proxy.conf.json` (`/api` → `http://localhost:8081`) et le brancher sur `npm start`
+- [ ] Créer `.github/workflows/ci.yml` : tout push et PR vers `main` ; jobs backend (`./mvnw -B verify`), frontend (`npm ci`, `ng test --no-watch`, `ng build`) et Docker (`docker compose build` + test de fumée sur `http://localhost:8090`) ; actions épinglées par version majeure, aucun secret
+- [ ] Vérifier en local : le backend démarre, le frontend compile, les tests générés passent, `docker compose up -d` démarre les trois conteneurs
+- [ ] Mettre à jour la section « Initialisation » de `CLAUDE.md` puis la supprimer
+- [ ] Une branche + une PR par tranche (backend + infra Docker, frontend, documentation, CI), commits sans co-auteur
+- [ ] Après la fusion de chaque PR par toi : CI verte sur GitHub (vérifiable avec `gh run list`)
 
 ## Phase 2 — Schéma et entités
 
@@ -76,14 +83,11 @@ Une phase est terminée quand les tests de la partie touchée sont au vert : `./
 - [ ] Écran des offres (`/leads`) : à évaluer / abandonnées
 - [ ] Écran d'import (`/import`) : envoi du classeur, choix du mode, affichage du résultat
 
-## Phase 8 — Empaquetage local
+## Phase 8 — README et recette finale
 
-- [ ] `Dockerfile` du backend
-- [ ] `Dockerfile` et `nginx.conf` du frontend (proxy `/api`)
-- [ ] Profil `app` dans `compose.yaml`
-- [ ] Vérifier `docker compose --profile app up -d` sur `http://localhost:8090`
-- [ ] `README.md` : démarrage, sauvegarde (`pg_dump`), import du classeur
+- [ ] `README.md` : démarrage (`docker compose up -d`, dev local), sauvegarde (`pg_dump`), import du classeur
+- [ ] Recette en conteneurs : `docker compose up -d` sur `http://localhost:8090`, import du classeur, compteurs conformes
 
 ## Hors périmètre
 
-Authentification, historique des statuts, pièces jointes, export Excel, notifications, pagination serveur, CI/CD, déploiement distant : à ne pas aborder sans demande explicite.
+Authentification, historique des statuts, pièces jointes, export Excel, notifications, pagination serveur, CD (publication d'images, déploiement distant) : à ne pas aborder sans demande explicite. La CI GitHub Actions fait partie de la phase 1.

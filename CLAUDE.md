@@ -7,7 +7,7 @@
   et élaguer ce qui se lit dans le code (arborescence, routes) pour rester sous 200 lignes.
 - Versions vérifiées le 06/10/2026 : Spring Boot 4.1.1, Angular 22.2, Node 24 LTS, PostgreSQL 18. -->
 
-Application web **mono-utilisateur, en local**, qui remplace mon classeur Excel de suivi de candidatures (stage de fin d'études) : candidatures numérotées, rattachées à un groupe employeur, avec statut, échéance de relance et notes de suivi, plus un vivier d'offres à évaluer ou abandonnées.
+Description du projet et stack (versions, outils) : voir `README.md`.
 
 - Code, schéma SQL et API en **anglais** ; interface et messages utilisateur en **français**.
 - Me répondre en français, de façon concise.
@@ -15,28 +15,28 @@ Application web **mono-utilisateur, en local**, qui remplace mon classeur Excel 
 
 ## Warning !!! 
 - Ne jamais se mettre en Co Author dans les comitt, push, PR, issues etc
+- **Ne jamais commiter ni pousser directement sur `main`.** Workflow obligatoire pour toute modification (code ou docs), voir « Workflow Git » plus bas.
 
 ## Stack
 
-- **Backend** : Java 25 (LTS), Spring Boot 4 (4.1 à ce jour : Web MVC, Data JPA, Validation, Flyway), Maven wrapper ; package racine `io.github.enissay39.tracker`.
-- **Base** : PostgreSQL 18 dans Docker Compose ; schéma géré par Flyway uniquement.
-- **Frontend** : Angular 22 (standalone, signals, zoneless), Angular Material 22 (thème M3), SCSS, TypeScript 6, npm.
-- **Tests** : JUnit, AssertJ, Mockito, Testcontainers (PostgreSQL) ; Vitest via `ng test`.
-- **Import Excel** : Apache POI (`poi-ooxml`).
-- **Poste de dev** : Windows, JDK 25, Node.js 24 LTS (≥ 24.15), Docker Desktop. Commandes écrites pour Git Bash (PowerShell : `./mvnw` → `.\mvnw.cmd`).
-- Volontairement absents : Lombok, MapStruct, Spring Security, H2, NgRx, Tailwind. Ne pas ajouter de dépendance sans me la proposer d'abord.
+Java 25 / Spring Boot 4 / PostgreSQL 18 / Angular 22 (détail dans `README.md`). Poste Windows, commandes pour Git Bash. Volontairement absents : Lombok, MapStruct, Spring Security, H2, NgRx, Tailwind. Ne pas ajouter de dépendance sans me la proposer d'abord.
 
 ## Commandes
 
 ```bash
-docker compose up -d postgres                 # base de dev → 127.0.0.1:5432
-cd backend && ./mvnw spring-boot:run          # API → http://localhost:8080
+docker compose up -d                          # toute l'appli en conteneurs (db, back, front) → http://localhost:8090
+docker compose up -d postgres                 # base seule pour le dev → 127.0.0.1:5432
+cd backend && ./mvnw spring-boot:run          # API → http://localhost:8081
 cd backend && ./mvnw verify                   # tous les tests (Docker doit tourner) ; une classe : ./mvnw test -Dtest=JobApplicationServiceTest
-cd frontend && npm start                      # ng serve → http://localhost:4200, proxy /api → :8080
+cd frontend && npm start                      # ng serve → http://localhost:4200, proxy /api → :8081
 cd frontend && npx ng test --no-watch         # Vitest, un seul passage ; cibler : --include "src/app/features/leads/**"
 cd frontend && npx ng build                   # doit passer sans erreur
 docker compose exec -T postgres pg_dump -U tracker tracker > data/backup.sql   # sauvegarde de la base
 ```
+
+Le port 8080 est pris sur le poste de dev (service Windows) : l'API locale écoute sur **8081** (`server.port`). Dans son conteneur elle écoute sur 8080, non publié sur l'hôte. En dev local, ne lancer que `postgres` pour éviter les conflits de port avec les conteneurs `backend` / `frontend`.
+
+Le `JAVA_HOME` système peut encore pointer sur un JDK 21 : vérifier `java -version` (25 attendu) ; JDK 25 est dans `C:\Program Files\Java\jdk-25.0.4.1` (Git Bash : `export JAVA_HOME="/c/Program Files/Java/jdk-25.0.4.1"; export PATH="$JAVA_HOME/bin:$PATH"`).
 
 `spring-boot:run` et `npm start` sont bloquants : les lancer en arrière-plan, ou me demander de le faire.
 
@@ -45,6 +45,7 @@ docker compose exec -T postgres pg_dump -U tracker tracker > data/backup.sql   #
 ```text
 tracker-candidatures/
 ├── CLAUDE.md  README.md  compose.yaml  .env.example  .gitignore
+├── .github/workflows/ci.yml        # CI GitHub Actions (build + tests + test de fumée Docker)
 ├── data/                           # ignoré par Git : classeur Excel réel, sauvegardes SQL
 ├── backend/                        # généré par Spring Initializr
 │   ├── pom.xml  mvnw  mvnw.cmd  Dockerfile
@@ -165,7 +166,7 @@ POST /import/excel                multipart `file`, option `?mode=replace`
 - Angular Material pour tous les composants (table triable, champs, datepicker, chips, dialog, snackbar). Couleurs via les variables `--mat-sys-*`, sauf la palette des statuts.
 - Appels HTTP uniquement dans un service `…-api.ts` par feature, jamais dans un composant. Types TypeScript calqués sur les `…Response` du backend.
 - Dates sans heure : chaîne `yyyy-MM-dd` de bout en bout ; ne jamais passer par `toISOString()` (le fuseau décale d'un jour).
-- Dev : `proxy.conf.json` envoie `/api` vers `http://localhost:8080` ; aucune configuration CORS côté backend.
+- Dev : `proxy.conf.json` envoie `/api` vers `http://localhost:8081` ; aucune configuration CORS côté backend.
 - Tests Vitest à côté du fichier (`*.spec.ts`), en priorité sur les services d'API et la logique d'affichage (tri, compteurs, alertes d'échéance).
 
 ## Import du classeur Excel
@@ -180,12 +181,24 @@ POST /import/excel                multipart `file`, option `?mode=replace`
 
 - Le classeur et la base contiennent mes **données personnelles réelles** : `data/`, `.env` et tout export restent hors Git. Tests et exemples : données fictives uniquement.
 - Ne jamais lancer `docker compose down -v`, `docker volume rm`, `DROP`, `TRUNCATE` ni `flyway clean` sur la base de dev sans mon accord explicite. Les tests passent uniquement par Testcontainers.
-- `compose.yaml` : image `postgres:18`, volume nommé monté sur `/var/lib/postgresql` (depuis PostgreSQL 18, ce n'est plus `/var/lib/postgresql/data`), ports publiés sur `127.0.0.1` seulement. Base, utilisateur et mot de passe de dev : `tracker`, surchargeables par `.env`.
+- `compose.yaml` : trois services **sans profil**, `docker compose up -d` démarre tout. `postgres` (image `postgres:18`, pas de Dockerfile, volume nommé monté sur `/var/lib/postgresql` — depuis PostgreSQL 18, ce n'est plus `/var/lib/postgresql/data` — publié sur `127.0.0.1:5432`), `backend` (Dockerfile multi-étapes, non publié sur l'hôte) et `frontend` (Dockerfile + nginx, publié sur `127.0.0.1:8090`, proxy `/api` → `backend:8080`). Ports publiés sur `127.0.0.1` seulement. Base, utilisateur et mot de passe de dev : `tracker`, surchargeables par `.env` (ignoré par Git ; seul `.env.example` est versionné).
+- **CI** (`.github/workflows/ci.yml`, GitHub Actions) : déclenchée sur tout push et sur les PR vers `main`. Job backend (`setup-java` Temurin 25, cache Maven, `./mvnw -B verify`), job frontend (`setup-node` 24, cache npm, `npm ci`, `npx ng test --no-watch`, `npx ng build`), job Docker (`docker compose build` puis test de fumée : `up -d`, attente de `http://localhost:8090`, `down`). Actions épinglées par version majeure, aucun secret, données fictives uniquement. Pas de CD : aucune image publiée, aucun déploiement.
 - Aucune authentification (usage local) : ne rien exposer hors de `127.0.0.1`.
 - Avancer par tranches verticales courtes (migration → entité → service → contrôleur → tests → écran) ; un commit par tranche, au format Conventional Commits.
+- **Workflow Git** (jamais de commit ni de push sur `main`, y compris pour la documentation) :
+  1. Créer une branche depuis `main` à jour : `git switch main && git pull && git switch -c <type>/<sujet>` (ex. `feat/backend-scaffold`, `docs/git-workflow`).
+  2. Commiter sur la branche (Conventional Commits, sans co-auteur), puis la pousser : `git push -u origin <branche>`.
+  3. Ouvrir une PR vers `main` avec `gh pr create` (corps sans mention de co-auteur ni de Claude).
+  4. **Lier la PR à son issue** (obligatoire quand elle en a une, y compris une sous-issue) et le dire dans le corps de la PR :
+     - la PR termine l'issue / sous-issue (critères d'acceptation remplis) : `Closes #n`, pour que la fusion la ferme ;
+     - la PR n'en fait qu'une partie : `Part of #n` (pas de `Closes`) ;
+     - sous-issue d'un parent : ajouter `Part of #parent` ; le parent n'est fermé (`Closes #parent`) que par la PR qui termine sa dernière sous-issue.
+  5. **Je relis la PR** : ne jamais la fusionner ni la fermer, et ne pas pousser d'autres changements sans mon accord ; corriger sur la même branche si je demande des modifications.
+  6. Je fusionne sur `main` (merge depuis GitHub) ; ensuite seulement : `git switch main && git pull`, et suppression de la branche locale fusionnée. Vérifier alors que l'issue est bien fermée (`gh issue view <n>`).
+  - Une branche et une PR par issue / tranche. Pas de `push --force`, pas de `reset --hard`, pas de `git branch -f main` sans mon accord explicite.
 - Avant d'annoncer une tâche finie : tests de la partie touchée au vert (`./mvnw verify`, `npx ng test --no-watch`, `npx ng build`).
-- Ordre de construction : 1) socle (section Initialisation) 2) schéma + entités 3) API candidatures, groupes, statuts 4) import Excel 5) écran liste (table, compteurs, filtres, alertes) 6) fiche, formulaire, changement de statut 7) groupes, offres, écran d'import 8) empaquetage local (`Dockerfile` backend, `Dockerfile` + nginx frontend, profil `app` dans `compose.yaml` → `docker compose --profile app up -d` sur `http://localhost:8090`).
-- Hors périmètre tant que je ne le demande pas : authentification, historique des statuts, pièces jointes, export Excel, notifications, pagination serveur, CI/CD, déploiement distant.
+- Ordre de construction : 1) socle (section Initialisation, + `compose.yaml` complet avec les Dockerfiles et la CI) 2) schéma + entités 3) API candidatures, groupes, statuts 4) import Excel 5) écran liste (table, compteurs, filtres, alertes) 6) fiche, formulaire, changement de statut 7) groupes, offres, écran d'import 8) `README.md` et recette finale en conteneurs (`docker compose up -d` sur `http://localhost:8090`).
+- Hors périmètre tant que je ne le demande pas : authentification, historique des statuts, pièces jointes, export Excel, notifications, pagination serveur, CD (publication d'images, déploiement distant).
 
 ## Initialisation (une seule fois — supprimer cette section une fois le socle commité)
 
@@ -200,7 +213,7 @@ cd frontend && npx ng add @angular/material --defaults --skip-confirmation
 ```
 
 - Ne pas écrire `pom.xml` ni `package.json` à la main : partir de ces générateurs, puis ajouter `poi-ooxml`.
-- Ensuite : fixer `postgres:18` dans `TestcontainersConfiguration`, créer `compose.yaml`, `.env.example`, le `.gitignore` racine (`data/`, `.env`) et `proxy.conf.json`, puis brancher le proxy sur `npm start`.
+- Ensuite : fixer `postgres:18` dans `TestcontainersConfiguration`, `server.port: 8081` dans `application.yaml`, créer `compose.yaml` (trois services), les deux Dockerfiles, `nginx.conf`, `.env.example`, le `.gitignore` racine (`data/`, `.env`), `.github/workflows/ci.yml` et `proxy.conf.json`, puis brancher le proxy sur `npm start`.
 
 ## Agent skills
 
