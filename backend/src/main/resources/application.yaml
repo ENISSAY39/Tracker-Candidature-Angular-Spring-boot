@@ -1,6 +1,11 @@
 spring:
   application:
     name: tracker
+  # Valeurs de dev (base de compose.yaml sur 127.0.0.1:5432) ; surchargées par SPRING_DATASOURCE_* en conteneur
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tracker
+    username: tracker
+    password: tracker
 
 server:
   port: 8081

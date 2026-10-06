@@ -1,0 +1,36 @@
+name: tracker
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tracker}
+      POSTGRES_USER: ${POSTGRES_USER:-tracker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tracker}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # Depuis PostgreSQL 18, le volume se monte sur /var/lib/postgresql (plus /var/lib/postgresql/data)
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-tracker}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-tracker}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-tracker}
+    # Non publié sur l'hôte : joignable uniquement par le réseau Compose (backend:8080)
+    expose:
+      - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
