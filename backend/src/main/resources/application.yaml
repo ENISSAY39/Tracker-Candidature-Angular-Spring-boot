@@ -1,6 +1,14 @@
 spring:
   application:
     name: tracker
+  # Dev local : lit le .env de la racine s'il existe (lancement depuis backend/)
+  config:
+    import: optional:file:../.env[.properties]
+  # Base de compose.yaml sur 127.0.0.1:5432 ; en conteneur, SPRING_DATASOURCE_* prend le dessus
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB:tracker}
+    username: ${POSTGRES_USER:tracker}
+    password: ${POSTGRES_PASSWORD:tracker}
 
 server:
   port: 8081
