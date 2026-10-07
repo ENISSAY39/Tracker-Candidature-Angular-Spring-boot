@@ -3,8 +3,8 @@
 
 
 <!-- Notes de maintenance (commentaire HTML : non injecté dans le contexte de Claude Code).
-- Fichier de démarrage pour un dépôt vide. Une fois le socle généré : supprimer la section « Initialisation »
-  et élaguer ce qui se lit dans le code (arborescence, routes) pour rester sous 200 lignes.
+- Socle généré, section « Initialisation » supprimée. Reste à faire au fil des phases :
+  élaguer ce qui se lit dans le code (arborescence, routes) pour rester sous 200 lignes.
 - Versions vérifiées le 06/10/2026 : Spring Boot 4.1.1, Angular 22.2, Node 24 LTS, PostgreSQL 18. -->
 
 Description du projet et stack (versions, outils) : voir `README.md`.
@@ -197,23 +197,8 @@ POST /import/excel                multipart `file`, option `?mode=replace`
   6. Je fusionne sur `main` (merge depuis GitHub) ; ensuite seulement : `git switch main && git pull`, et suppression de la branche locale fusionnée. Vérifier alors que l'issue est bien fermée (`gh issue view <n>`).
   - Une branche et une PR par issue / tranche. Pas de `push --force`, pas de `reset --hard`, pas de `git branch -f main` sans mon accord explicite.
 - Avant d'annoncer une tâche finie : tests de la partie touchée au vert (`./mvnw verify`, `npx ng test --no-watch`, `npx ng build`).
-- Ordre de construction : 1) socle (section Initialisation, + `compose.yaml` complet avec les Dockerfiles et la CI) 2) schéma + entités 3) API candidatures, groupes, statuts 4) import Excel 5) écran liste (table, compteurs, filtres, alertes) 6) fiche, formulaire, changement de statut 7) groupes, offres, écran d'import 8) `README.md` et recette finale en conteneurs (`docker compose up -d` sur `http://localhost:8090`).
+- Ordre de construction : 1) socle (backend et frontend générés, `compose.yaml` complet avec les Dockerfiles et la CI) 2) schéma + entités 3) API candidatures, groupes, statuts 4) import Excel 5) écran liste (table, compteurs, filtres, alertes) 6) fiche, formulaire, changement de statut 7) groupes, offres, écran d'import 8) `README.md` et recette finale en conteneurs (`docker compose up -d` sur `http://localhost:8090`).
 - Hors périmètre tant que je ne le demande pas : authentification, historique des statuts, pièces jointes, export Excel, notifications, pagination serveur, CD (publication d'images, déploiement distant).
-
-## Initialisation (une seule fois — supprimer cette section une fois le socle commité)
-
-```bash
-curl -s https://start.spring.io/starter.zip -d type=maven-project -d language=java -d javaVersion=25 \
-  -d groupId=io.github.enissay39 -d artifactId=tracker -d name=tracker -d packageName=io.github.enissay39.tracker \
-  -d configurationFileFormat=yaml -d dependencies=web,data-jpa,postgresql,flyway,validation,testcontainers \
-  -o backend.zip && unzip -q backend.zip -d backend && rm backend.zip
-npx -y @angular/cli@22 new frontend --style=scss --ssr=false --routing --zoneless \
-  --skip-git --package-manager=npm --ai-config=claude-code --defaults
-cd frontend && npx ng add @angular/material --defaults --skip-confirmation
-```
-
-- Ne pas écrire `pom.xml` ni `package.json` à la main : partir de ces générateurs, puis ajouter `poi-ooxml`.
-- Ensuite : fixer `postgres:18` dans `TestcontainersConfiguration`, `server.port: 8081` dans `application.yaml`, créer `compose.yaml` (trois services), les deux Dockerfiles, `nginx.conf`, `.env.example`, le `.gitignore` racine (`data/`, `.env`), `.github/workflows/ci.yml` et `proxy.conf.json`, puis brancher le proxy sur `npm start`.
 
 ## Agent skills
 
