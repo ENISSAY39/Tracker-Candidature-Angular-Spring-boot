@@ -6,7 +6,7 @@ Une phase est terminée quand les tests de la partie touchée sont au vert : `./
 
 ## Phase 1 — Socle
 
-- [ ] Installer JDK 25 (`java -version` → 25, `JAVA_HOME` à jour) et lancer Docker Desktop
+- [x] Installer JDK 25 (`java -version` → 25, `JAVA_HOME` à jour) et lancer Docker Desktop
 - [x] Générer le backend avec Spring Initializr (Java 25, Maven, `web`, `data-jpa`, `postgresql`, `flyway`, `validation`, `testcontainers`) ; vérifier les starters Spring Boot 4 et `flyway-database-postgresql`
 - [x] Générer le frontend avec Angular CLI 22 (SCSS, routing, zoneless, sans SSR) puis ajouter Angular Material
 - [x] Ajouter la dépendance `poi-ooxml` au `pom.xml`
