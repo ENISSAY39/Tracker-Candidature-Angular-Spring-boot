@@ -36,7 +36,7 @@ services:
     build: ./frontend
     # Point d'entrée de l'appli : nginx sert le build Angular et relaie /api vers backend:8080
     ports:
-      - "127.0.0.1:8090:80"
+      - "127.0.0.1:8090:8080"
     # nginx résout « backend » à son démarrage : le conteneur doit déjà tourner
     depends_on:
       - backend

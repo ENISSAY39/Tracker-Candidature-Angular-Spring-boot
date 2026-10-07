@@ -14,8 +14,8 @@ COPY src src
 # Les tests tournent en CI (Vitest), pas dans l'image
 RUN npx ng build
 
-# Exécution : nginx sert l'appli compilée et relaie /api vers le backend (nginx.conf)
-FROM nginx:1.30-alpine
+# Exécution : nginx non root (UID 101) sert l'appli compilée et relaie /api vers le backend (nginx.conf)
+FROM nginxinc/nginx-unprivileged:1.30-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /workspace/dist/frontend/browser /usr/share/nginx/html
-EXPOSE 80
+EXPOSE 8080
