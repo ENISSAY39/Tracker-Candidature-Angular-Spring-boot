@@ -34,4 +34,18 @@ public enum ApplicationStatus {
 		return category;
 	}
 
+	/**
+	 * Une candidature jamais partie (à envoyer, ou abandonnée avant l'envoi) peut ne pas avoir de date d'envoi.
+	 */
+	public boolean requiresSentOn() {
+		return this != TO_SEND && this != WITHDRAWN;
+	}
+
+	/**
+	 * Statut clos : plus de prochaine étape, donc plus de date d'échéance.
+	 */
+	public boolean isClosed() {
+		return this == REJECTED || this == WITHDRAWN;
+	}
+
 }

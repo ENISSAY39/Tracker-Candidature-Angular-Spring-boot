@@ -14,6 +14,10 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  # Interface en français seulement : messages de validation en français, sans tenir compte d'Accept-Language
+  web:
+    locale: fr_FR
+    locale-resolver: fixed
 
 server:
   port: 8081
