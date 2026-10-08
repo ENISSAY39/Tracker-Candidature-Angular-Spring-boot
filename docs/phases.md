@@ -37,9 +37,9 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 
 ### Tranche 2 — Pistes (`feat/schema-leads`)
 
-- [ ] Migration `V2__job_lead.sql` : `job_lead`, `CHECK` sur l'état, `CHECK` motif renseigné et non vide si et seulement si `DISCARDED`
-- [ ] Enum `LeadState`, entité `JobLead`, repository
-- [ ] Tests d'intégration sur Testcontainers : les deux sens du `CHECK` sur le motif
+- [x] Migration `V2__job_lead.sql` : `job_lead`, `CHECK` sur l'état, `CHECK` motif renseigné et non vide si et seulement si `DISCARDED`
+- [x] Enum `LeadState`, entité `JobLead`, repository
+- [x] Tests d'intégration sur Testcontainers : les deux sens du `CHECK` sur le motif
 
 ## Phase 3 — API candidatures, groupes, statuts
 
