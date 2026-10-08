@@ -1,6 +1,6 @@
 # Tracker de candidatures
 
-Application web **mono-utilisateur, en local**, qui remplace mon classeur Excel de suivi de candidatures (stage de fin d'études) : candidatures numérotées, rattachées à un groupe employeur, avec statut, échéance de relance et notes de suivi, plus un vivier d'offres à évaluer ou abandonnées.
+Application web **mono-utilisateur, en local**, qui remplace mon classeur Excel de suivi de candidatures (stage de fin d'études) : candidatures numérotées, rattachées à un groupe employeur, avec statut, échéance de relance et notes de suivi, plus un vivier de pistes à évaluer ou écartées.
 
 ## Stack
 
