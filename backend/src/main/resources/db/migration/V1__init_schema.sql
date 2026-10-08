@@ -39,6 +39,4 @@ CREATE TABLE job_application (
         CHECK (status NOT IN ('REJECTED', 'WITHDRAWN') OR deadline_date IS NULL)
 );
 
-ALTER SEQUENCE job_application_number_seq OWNED BY job_application.number;
-
 CREATE INDEX ix_job_application_company_group ON job_application (company_group_id);

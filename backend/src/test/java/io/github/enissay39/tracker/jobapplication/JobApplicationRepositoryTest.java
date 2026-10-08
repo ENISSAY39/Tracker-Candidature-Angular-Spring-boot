@@ -20,6 +20,7 @@ import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @DataJpaTest
 @Import(TestcontainersConfiguration.class)
@@ -91,7 +92,8 @@ class JobApplicationRepositoryTest {
 
 		JobApplication loaded = repository.findById(id).orElseThrow();
 		loaded.setCompany("Fictif Aéro - autre site");
-		loaded.setStatus(ApplicationStatus.WITHDRAWN);
+		// aucun setter : on force le champ pour prouver que la mise à jour n'écrit jamais la colonne
+		ReflectionTestUtils.setField(loaded, "number", 99);
 		repository.saveAndFlush(loaded);
 		entityManager.clear();
 
@@ -140,10 +142,10 @@ class JobApplicationRepositoryTest {
 	@Test
 	void rejectsAnUnknownStatusInsertedWithSql() {
 		String insert = "INSERT INTO job_application (number, company_group_id, company, job_title, status) "
-				+ "VALUES (1, ?, 'Fictif Aéro', 'Stagiaire', ?)";
-		assertThat(jdbcTemplate.update(insert, group.getId(), "TO_SEND")).isEqualTo(1);
+				+ "VALUES (?, ?, 'Fictif Aéro', 'Stagiaire', ?)";
+		assertThat(jdbcTemplate.update(insert, 1, group.getId(), "TO_SEND")).isEqualTo(1);
 
-		assertThatThrownBy(() -> jdbcTemplate.update(insert.replace("(1,", "(2,"), group.getId(), "UNKNOWN"))
+		assertThatThrownBy(() -> jdbcTemplate.update(insert, 2, group.getId(), "UNKNOWN"))
 			.isInstanceOf(DataIntegrityViolationException.class);
 	}
 
@@ -178,10 +180,7 @@ class JobApplicationRepositoryTest {
 		List<JobApplication> applications = repository.findAllWithCompanyGroup();
 
 		assertThat(applications).hasSize(2)
-			.allSatisfy(application -> assertThat(entityManager.getEntityManager()
-				.getEntityManagerFactory()
-				.getPersistenceUnitUtil()
-				.isLoaded(application.getCompanyGroup())).isTrue());
+			.allSatisfy(application -> assertThat(isLoaded(application.getCompanyGroup())).isTrue());
 		assertThat(applications).extracting(application -> application.getCompanyGroup().getName())
 			.containsExactlyInAnyOrder("Groupe Fictif", "Autre Groupe");
 	}
@@ -199,6 +198,10 @@ class JobApplicationRepositoryTest {
 
 		assertThat(application.getCreatedAt()).isEqualTo(createdAt);
 		assertThat(application.getUpdatedAt()).isAfter(createdAt);
+	}
+
+	private boolean isLoaded(Object entity) {
+		return entityManager.getEntityManager().getEntityManagerFactory().getPersistenceUnitUtil().isLoaded(entity);
 	}
 
 	private JobApplication application(int number, ApplicationStatus status) {
