@@ -6,3 +6,6 @@ data/
 
 # Configuration IntelliJ
 .idea/
+
+# Personal files
+*.xlsx
