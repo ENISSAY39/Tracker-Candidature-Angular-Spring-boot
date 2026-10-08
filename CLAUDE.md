@@ -53,7 +53,7 @@ tracker-candidatures/
 │       ├── main/java/io/github/enissay39/tracker/    # un package par fonctionnalité, pas par couche technique
 │       │   ├── jobapplication/     # JobApplication, ApplicationStatus, StatusCategory, Repository, Service, Controller, Mapper, dto/
 │       │   ├── companygroup/       # CompanyGroup + Repository, Service, Controller, dto/
-│       │   ├── joblead/            # JobLead, LeadState + promotion / abandon
+│       │   ├── joblead/            # JobLead, LeadState + promotion / écart / réévaluation
 │       │   ├── excelimport/        # lecture du classeur (POI) → entités
 │       │   └── common/             # GlobalExceptionHandler (ProblemDetail), exceptions métier, config ; ne dépend d'aucun autre package
 │       ├── main/resources/         # application.yaml, db/migration/V1__init_schema.sql, V2__…
@@ -69,30 +69,30 @@ tracker-candidatures/
             └── features/           # un dossier par écran, routes en lazy loading
                 ├── applications/   # liste (table, compteurs, filtres), fiche, formulaire, applications-api.ts
                 ├── groups/         # liste des groupes, page d'un groupe
-                ├── leads/          # offres à évaluer / abandonnées
+                ├── leads/          # pistes à évaluer / écartées
                 └── import/         # envoi du classeur Excel
 ```
 
 ## Modèle de données (transposition du classeur)
 
 - Feuille « Toutes les candidatures » → table `job_application`.
-- Sa colonne « Groupe » → table `company_group` (entité `CompanyGroup`) : `id`, `name varchar(100)` non nul, unique sans tenir compte de la casse (index sur `lower(name)`).
-- Les 12 feuilles par employeur (dont « Autres ») → **aucune table** : ce sont des vues filtrées par groupe. Dans l'appli, chaque groupe a sa page.
-- Feuilles « À évaluer » et « Abandonnées » → table `job_lead` (`state` = `TO_EVALUATE` / `DISCARDED`).
+- Sa colonne « Groupe » → table `company_group` (entité `CompanyGroup`) : `id`, `name varchar(100)` non nul, unique sans tenir compte de la casse (index sur `lower(name)`), sans espace en début ni en fin et non vide (`CHECK`).
+- Les feuilles par employeur → **aucune table** : ce sont des vues filtrées par groupe. Dans l'appli, chaque groupe a sa page. La feuille « Autres » n'est pas un groupe : c'est un regroupement de présentation du classeur, sans équivalent dans l'appli (chaque employeur isolé est un groupe à part entière).
+- Feuilles « À évaluer » et « Abandonnées » → table `job_lead` (`state` = `TO_EVALUATE` / `DISCARDED`). Dans l'appli, un `JobLead` s'appelle une **piste**, à évaluer ou écartée (vocabulaire : `GLOSSARY.md`).
 - Ligne 2 de chaque feuille (compteurs) → calculée, jamais stockée.
 
 ### `job_application` — entité `JobApplication`
 
 | Colonne Excel | Colonne SQL | Type | Règle |
 |---|---|---|---|
-| # | `number` | `integer` unique, non nul | Numéro métier donné par la séquence `job_application_number_seq` ; immuable, jamais réutilisé (les notes citent « n° 26 ») |
+| # | `number` | `integer` unique, non nul | Numéro métier donné par la séquence `job_application_number_seq` ; immuable, jamais réutilisé (les notes citent « n° 26 ») ; attribué par le service, trous possibles |
 | Groupe | `company_group_id` | FK non nulle | Maison mère ; créée à la volée à partir de son nom |
 | Entreprise | `company` | `varchar(255)` non nul | Texte libre : entité + service + site |
 | Poste | `job_title` | `varchar(255)` non nul | Texte libre : intitulé + référence de l'annonce |
 | Statut | `status` | `varchar(30)` non nul + `CHECK` | Enum `ApplicationStatus` stocké en texte |
-| Envoyée le | `sent_on` | `date` | Obligatoire sauf statuts `TO_SEND` et `WITHDRAWN` |
+| Envoyée le | `sent_on` | `date` | Obligatoire sauf statuts `TO_SEND` et `WITHDRAWN` ; contrôlé par le service, sans `CHECK` (ADR 0001) |
 | Échéance | `deadline_label` | `varchar(255)` | Prochaine étape en clair (« Relance le 18/10 », « Refus si rien au 21/10 ») |
-| Date échéance | `deadline_date` | `date` | Saisie à part, jamais déduite du libellé ; pilote les alertes |
+| Date échéance | `deadline_date` | `date` | Saisie à part, jamais déduite du libellé ; pilote les alertes ; nulle sur un statut clos (`CHECK`) |
 | Prochaine action | `notes` | `text` | Journal de suivi daté, écarts, points de vigilance, actions à mener |
 | Début | `start_period` | `varchar(100)` | Texte libre : début + durée (« Févr. 2027, 6 mois ») |
 | Canal | `channel` | `varchar(255)` | Texte libre (site carrière, JobTeaser, cooptation…) ; autocomplétion sur les valeurs existantes |
@@ -107,7 +107,7 @@ tracker-candidatures/
 | Poste | `job_title` | `varchar(255)` non nul | |
 | CV prévu (À évaluer) | `planned_cv` | `varchar(255)` | |
 | Remarque (À évaluer) | `remark` | `text` | |
-| Motif (Abandonnées) | `discard_reason` | `text` | Obligatoire si `DISCARDED` |
+| Motif (Abandonnées) | `discard_reason` | `text` | Renseigné et non vide si et seulement si `DISCARDED` (`CHECK`) |
 | (nom de la feuille) | `state` | `varchar(20)` non nul + `CHECK` | Enum `LeadState` : `TO_EVALUATE` / `DISCARDED` |
 | — | `id`, `created_at`, `updated_at` | `bigint` identité, `timestamptz` | Techniques |
 
@@ -129,20 +129,22 @@ tracker-candidatures/
 - **Filtres de la liste** : catégorie ou statut, groupe, texte libre (entreprise, poste, notes), échéance dépassée ou sous 3 jours.
 - **Échéance** : à la saisie de `sent_on`, proposer `deadline_date = sent_on + 14 jours` si elle est vide (règle de relance, modifiable). Alerte sur la date : dépassée → gras `#C00000` ; d'aujourd'hui à J+3 → gras `#B45309`.
 - **Statuts clos** (`REJECTED`, `WITHDRAWN`) : `deadline_date` remise à `null`, ligne en gris `#6E6E6E`, aucune alerte.
-- **Transitions** : libres, pas de machine à états ; changement rapide depuis la liste via `PATCH …/status`.
+- **Transitions** : libres, pas de machine à états ; changement rapide depuis la liste via `PATCH …/status`. Si le nouveau statut exige une date d'envoi et que la candidature n'en a pas, le front la demande dans un dialogue (préremplie à aujourd'hui, avec l'échéance proposée à + 14 jours) et l'envoie dans le `PATCH` ; sans date, le backend répond 400 et ne lit jamais l'horloge du serveur. Revenir à `TO_SEND` conserve `sent_on` ; rouvrir un statut clos ne restaure pas `deadline_date`.
+- **Numéro** : le service lit `nextval` de la séquence et pose `number` à la création ; aucun `…Request` ne porte de `number`, seul l'import en impose un. Une création qui échoue laisse un trou dans la numérotation.
+- **Groupes** : le nom est nettoyé (espaces de début et de fin) avant toute recherche ou création, la recherche ignore la casse et la graphie du groupe existant est conservée ; seule l'action « Renommer » la change. Renommer vers un nom déjà pris → 409, pas de fusion. Un groupe vide reste jusqu'à sa suppression manuelle.
 - **Notes** : tronquées dans la table, texte intégral avec retours à la ligne dans la fiche.
-- **Offres (`JobLead`)** : « Promouvoir » crée une candidature `TO_SEND` (`company`, `job_title`, `planned_cv` → `cv_sent`, `remark` → `notes`, groupe demandé) et supprime le lead dans la même transaction. « Écarter » passe en `DISCARDED` avec motif obligatoire.
-- À ne pas confondre : statut « Offre » (proposition reçue) ≠ offre à évaluer (annonce repérée → `JobLead`) ; statut « Abandonnée » (`WITHDRAWN`, candidature suivie) ≠ offre abandonnée (`DISCARDED`, jamais candidatée).
+- **Pistes (`JobLead`)** : « Promouvoir » crée une candidature `TO_SEND` (`company`, `job_title`, `planned_cv` → `cv_sent`, `remark` → `notes`, groupe demandé) et supprime la piste dans la même transaction ; réservé aux pistes à évaluer (409 sur une piste écartée). « Écarter » passe en `DISCARDED` avec motif obligatoire, en conservant `planned_cv` et `remark`. « Réévaluer » repasse en `TO_EVALUATE` et efface le motif.
+- Vocabulaire : « Offre » et « Abandonnée » ne désignent que des statuts de candidature ; un `JobLead` est une « piste », « à évaluer » ou « écartée » (`GLOSSARY.md`).
 
 ## API REST (préfixe `/api`, JSON, dates `yyyy-MM-dd`)
 
 ```text
 GET /applications · GET /applications/{id} · POST /applications · PUT /applications/{id} · DELETE /applications/{id}
-PATCH /applications/{id}/status   {status}
+PATCH /applications/{id}/status   {status, sentOn?, deadlineDate?}
 GET /statuses                     code, label, category, ordre
 GET /groups · PUT /groups/{id} (renommer) · DELETE /groups/{id} (409 si le groupe a des candidatures)
 GET /leads?state= · POST /leads · PUT /leads/{id} · DELETE /leads/{id}
-POST /leads/{id}/promote {groupName} · POST /leads/{id}/discard {reason}
+POST /leads/{id}/promote {groupName} · POST /leads/{id}/discard {reason} · POST /leads/{id}/restore
 POST /import/excel                multipart `file`, option `?mode=replace`
 ```
 
@@ -156,6 +158,7 @@ POST /import/excel                multipart `file`, option `?mode=replace`
 - Injection par constructeur. Mapping entité ↔ `record` écrit à la main dans un `…Mapper`.
 - Schéma : uniquement des migrations Flyway `V{n}__description.sql` ; `ddl-auto: validate`, `open-in-view: false`. Ne jamais modifier une migration déjà appliquée : en ajouter une.
 - Enums en `@Enumerated(EnumType.STRING)`, doublés d'une contrainte `CHECK` en SQL.
+- `created_at` / `updated_at` posés par l'entité (`@PrePersist` / `@PreUpdate`), avec `DEFAULT now()` en SQL comme filet. Un champ texte facultatif vide est enregistré à `null`, jamais en chaîne vide.
 - Tests : services en unitaire (Mockito), contrôleurs en `@WebMvcTest`, repositories et import en intégration sur Testcontainers (`postgres:18`).
 - Spring Boot 4 diffère des 3.x : starters modulaires (`spring-boot-starter-webmvc`, `spring-boot-starter-flyway`, un starter `-test` par techno), Jackson 3 (paquets `tools.jackson`), `@MockitoBean` à la place de `@MockBean`. En cas de doute sur une API, lire la doc de la version installée plutôt que coder de mémoire.
 
@@ -173,13 +176,15 @@ POST /import/excel                multipart `file`, option `?mode=replace`
 
 - `POST /api/import/excel` reçoit `Tracker_Candidatures.xlsx` depuis l'écran Import. Tout ou rien (une transaction) ; la réponse donne le nombre de lignes créées par table.
 - « Toutes les candidatures » : repérer la ligne d'en-têtes (première cellule = `#`), lire les colonnes **par leur intitulé**, s'arrêter à la première ligne sans `#`. Ignorer les feuilles par employeur.
-- « Statut » → enum par libellé exact ; un libellé inconnu rejette l'import en citant la ligne. Dates : cellules de type date uniquement, ne jamais analyser le texte de « Échéance ».
+- « Statut » → enum par libellé exact ; un libellé inconnu rejette l'import en citant la ligne. Dates : cellules de type date uniquement, ne jamais analyser le texte de « Échéance ». Une candidature sans « Envoyée le » alors que son statut l'exige rejette l'import en citant la ligne.
+- « À évaluer » et « Abandonnées » : ligne d'en-têtes repérée par sa première cellule (`Entreprise`), colonnes lues par leur intitulé, lignes vides ignorées ; elles alimentent `job_lead` (`TO_EVALUATE` / `DISCARDED`).
+- Classeur de test : fictif et généré par POI dans le test (`*.xlsx` est ignoré par Git).
 - Conserver les `number` du classeur, puis recaler la séquence sur le maximum. Refuser l'import si la base contient déjà des candidatures, sauf `mode=replace` (vide puis recharge).
 - Recette : les compteurs affichés après import sont ceux de la ligne 2 de « Toutes les candidatures ».
 
 ## Garde-fous et méthode de travail
 
-- Le classeur et la base contiennent mes **données personnelles réelles** : `data/`, `.env` et tout export restent hors Git. Tests et exemples : données fictives uniquement.
+- Le classeur et la base contiennent mes **données personnelles réelles** : `data/`, `.env`, tout fichier `*.xlsx` et tout export restent hors Git. Tests et exemples : données fictives uniquement.
 - Ne jamais lancer `docker compose down -v`, `docker volume rm`, `DROP`, `TRUNCATE` ni `flyway clean` sur la base de dev sans mon accord explicite. Les tests passent uniquement par Testcontainers.
 - `compose.yaml` : trois services **sans profil**, `docker compose up -d` démarre tout. `postgres` (image `postgres:18`, pas de Dockerfile, volume nommé monté sur `/var/lib/postgresql` — depuis PostgreSQL 18, ce n'est plus `/var/lib/postgresql/data` — publié sur `127.0.0.1:5432`), `backend` (Dockerfile multi-étapes, non publié sur l'hôte) et `frontend` (Dockerfile + nginx, publié sur `127.0.0.1:8090`, proxy `/api` → `backend:8080`). Ports publiés sur `127.0.0.1` seulement. Base, utilisateur et mot de passe de dev : `tracker`, surchargeables par `.env` (ignoré par Git ; seul `.env.example` est versionné).
 - **CI** (`.github/workflows/ci.yml`, GitHub Actions) : déclenchée sur tout push et sur les PR vers `main`. Job backend (`setup-java` Temurin 25, cache Maven, `./mvnw -B verify`), job frontend (`setup-node` 24, cache npm, `npm ci`, `npx ng test --no-watch`, `npx ng build`), job Docker (`docker compose build` puis test de fumée : `up -d`, attente de `http://localhost:8090`, `down`). Actions épinglées par version majeure, aucun secret, données fictives uniquement. Pas de CD : aucune image publiée, aucun déploiement.
@@ -197,7 +202,7 @@ POST /import/excel                multipart `file`, option `?mode=replace`
   6. Je fusionne sur `main` (merge depuis GitHub) ; ensuite seulement : `git switch main && git pull`, et suppression de la branche locale fusionnée. Vérifier alors que l'issue est bien fermée (`gh issue view <n>`).
   - Une branche et une PR par issue / tranche. Pas de `push --force`, pas de `reset --hard`, pas de `git branch -f main` sans mon accord explicite.
 - Avant d'annoncer une tâche finie : tests de la partie touchée au vert (`./mvnw verify`, `npx ng test --no-watch`, `npx ng build`).
-- Ordre de construction : 1) socle (backend et frontend générés, `compose.yaml` complet avec les Dockerfiles et la CI) 2) schéma + entités 3) API candidatures, groupes, statuts 4) import Excel 5) écran liste (table, compteurs, filtres, alertes) 6) fiche, formulaire, changement de statut 7) groupes, offres, écran d'import 8) `README.md` et recette finale en conteneurs (`docker compose up -d` sur `http://localhost:8090`).
+- Ordre de construction : 1) socle (backend et frontend générés, `compose.yaml` complet avec les Dockerfiles et la CI) 2) schéma + entités 3) API candidatures, groupes, statuts 4) import Excel 5) écran liste (table, compteurs, filtres, alertes) 6) fiche, formulaire, changement de statut 7) groupes, pistes, écran d'import 8) `README.md` et recette finale en conteneurs (`docker compose up -d` sur `http://localhost:8090`).
 - Hors périmètre tant que je ne le demande pas : authentification, historique des statuts, pièces jointes, export Excel, notifications, pagination serveur, CD (publication d'images, déploiement distant).
 
 ## Agent skills

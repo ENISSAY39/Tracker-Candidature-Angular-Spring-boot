@@ -24,22 +24,33 @@ Une phase est terminée quand les tests de la partie touchée sont au vert : `./
 
 ## Phase 2 — Schéma et entités
 
-- [ ] Migration `V1__init_schema.sql` : `company_group` (index unique sur `lower(name)`), séquence `job_application_number_seq`, `job_application`, `job_lead`, contraintes `CHECK` sur les enums
-- [ ] Enums `ApplicationStatus` (avec `label` et `category`), `StatusCategory`, `LeadState`
-- [ ] Entités `CompanyGroup`, `JobApplication`, `JobLead` (`ddl-auto: validate`, `open-in-view: false`)
-- [ ] Repositories Spring Data
-- [ ] Tests d'intégration des repositories sur Testcontainers (`postgres:18`)
+Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUDE.md`, `GLOSSARY.md`, `docs/adr/0001-cross-column-invariants.md`.
+
+### Tranche 1 — Groupes et candidatures (`feat/schema-applications`)
+
+- [ ] `ddl-auto: validate` et `open-in-view: false` dans `application.yaml`
+- [ ] Migration `V1__init_schema.sql` : `company_group` (index unique sur `lower(name)`, `CHECK` nom nettoyé et non vide), séquence `job_application_number_seq`, `job_application` (`number` avec `DEFAULT nextval`, clé étrangère `ON DELETE RESTRICT`, `CHECK` sur le statut, `CHECK` `deadline_date` nulle sur un statut clos ; pas de `CHECK` sur `sent_on`), `created_at` / `updated_at` avec `DEFAULT now()`
+- [ ] Enums `ApplicationStatus` (avec `label` et `category`) et `StatusCategory`
+- [ ] Entités `CompanyGroup` et `JobApplication` (`number` en `updatable = false`, horodatage par `@PrePersist` / `@PreUpdate`)
+- [ ] Repositories Spring Data, dont la lecture de `nextval` et la recherche d'un groupe sans tenir compte de la casse
+- [ ] Tests d'intégration sur Testcontainers (`postgres:18`) : contraintes `CHECK`, unicité du nom de groupe, unicité du `number`, suppression d'un groupe non vide refusée
+
+### Tranche 2 — Pistes (`feat/schema-leads`)
+
+- [ ] Migration `V2__job_lead.sql` : `job_lead`, `CHECK` sur l'état, `CHECK` motif renseigné et non vide si et seulement si `DISCARDED`
+- [ ] Enum `LeadState`, entité `JobLead`, repository
+- [ ] Tests d'intégration sur Testcontainers : les deux sens du `CHECK` sur le motif
 
 ## Phase 3 — API candidatures, groupes, statuts
 
 - [ ] `common` : `GlobalExceptionHandler` (`ProblemDetail`, RFC 9457 : 400 avec champs en erreur, 404, 409) et exceptions métier
 - [ ] `GET /api/statuses` (code, libellé, catégorie, ordre)
 - [ ] Candidatures : DTO `…Request` / `…Response`, mapper manuel, service, contrôleur ; `GET`, `POST`, `PUT`, `DELETE`
-- [ ] Création du groupe à la volée à partir de `groupName`
-- [ ] Attribution du `number` par la séquence (immuable, jamais réutilisé)
-- [ ] `PATCH /api/applications/{id}/status`
-- [ ] Règles métier : `sent_on` obligatoire sauf `TO_SEND` / `WITHDRAWN`, `deadline_date` remise à `null` sur les statuts clos
-- [ ] Groupes : `GET`, `PUT` (renommer), `DELETE` (409 si le groupe a des candidatures)
+- [ ] Création du groupe à la volée à partir de `groupName` : nom nettoyé, recherche sans tenir compte de la casse, graphie existante conservée
+- [ ] Attribution du `number` par le service à partir de la séquence (immuable, jamais réutilisé, trous possibles) ; aucun `number` dans les `…Request`
+- [ ] `PATCH /api/applications/{id}/status` avec `{status, sentOn?, deadlineDate?}` ; 400 si la date d'envoi manque, jamais d'horloge serveur
+- [ ] Règles métier : `sent_on` obligatoire sauf `TO_SEND` / `WITHDRAWN`, `deadline_date` remise à `null` sur les statuts clos, champs texte facultatifs vides enregistrés à `null`
+- [ ] Groupes : `GET`, `PUT` (renommer ; 409 si le nom est déjà pris, pas de fusion), `DELETE` (409 si le groupe a des candidatures)
 - [ ] Tests : services en unitaire (Mockito), contrôleurs en `@WebMvcTest`
 
 ## Phase 4 — Import Excel
@@ -47,10 +58,12 @@ Une phase est terminée quand les tests de la partie touchée sont au vert : `./
 - [ ] Lecture de la feuille « Toutes les candidatures » avec Apache POI : ligne d'en-têtes (première cellule = `#`), colonnes lues par leur intitulé, arrêt à la première ligne sans `#`
 - [ ] Conversion du statut par libellé exact, rejet de l'import avec le numéro de ligne si le libellé est inconnu
 - [ ] Dates : cellules de type date uniquement
+- [ ] Rejet de l'import avec le numéro de ligne si « Envoyée le » manque alors que le statut l'exige
+- [ ] Lecture des feuilles « À évaluer » et « Abandonnées » vers `job_lead` (en-têtes repérés par `Entreprise`, lignes vides ignorées) ; feuilles par employeur et « Autres » ignorées
 - [ ] Conservation des `number` du classeur, recalage de la séquence sur le maximum
 - [ ] `POST /api/import/excel` : tout ou rien (une transaction), refus si la base contient déjà des candidatures sauf `?mode=replace`
 - [ ] Réponse avec le nombre de lignes créées par table
-- [ ] Tests d'intégration sur Testcontainers avec un classeur fictif
+- [ ] Tests d'intégration sur Testcontainers avec un classeur fictif généré par POI dans le test (`*.xlsx` est ignoré par Git)
 - [ ] Recette : les compteurs après import correspondent à la ligne 2 de « Toutes les candidatures »
 
 ## Phase 5 — Écran liste
@@ -69,18 +82,19 @@ Une phase est terminée quand les tests de la partie touchée sont au vert : `./
 - [ ] Fiche d'une candidature (`/applications/:id`) avec notes complètes
 - [ ] Formulaire de création et d'édition (datepicker, groupe en autocomplétion, canal en autocomplétion sur les valeurs existantes)
 - [ ] Proposition de `deadline_date = sent_on + 14 jours` à la saisie de `sent_on` si l'échéance est vide
-- [ ] Changement rapide de statut depuis la liste (`PATCH …/status`)
+- [ ] Changement rapide de statut depuis la liste (`PATCH …/status`) ; dialogue « Envoyée le » (aujourd'hui par défaut, échéance proposée à + 14 jours) seulement si la date d'envoi manque
 - [ ] Suppression avec `confirm-dialog`
 - [ ] Retours utilisateur par snackbar, gestion des erreurs de validation du backend
 
-## Phase 7 — Groupes, offres, écran d'import
+## Phase 7 — Groupes, pistes, écran d'import
 
 - [ ] Liste des groupes (`/groups`) et page d'un groupe (`/groups/:id`) : même liste filtrée, compteurs du groupe
 - [ ] Renommage et suppression d'un groupe (gestion du 409)
 - [ ] Backend `joblead` : CRUD, `GET /api/leads?state=`
-- [ ] « Promouvoir » : crée une candidature `TO_SEND` (groupe demandé) et supprime l'offre dans la même transaction
-- [ ] « Écarter » : passage en `DISCARDED` avec motif obligatoire
-- [ ] Écran des offres (`/leads`) : à évaluer / abandonnées
+- [ ] « Promouvoir » : crée une candidature `TO_SEND` (groupe demandé) et supprime la piste dans la même transaction ; 409 sur une piste écartée
+- [ ] « Écarter » : passage en `DISCARDED` avec motif obligatoire, `planned_cv` et `remark` conservés
+- [ ] « Réévaluer » (`POST /api/leads/{id}/restore`) : retour en `TO_EVALUATE`, motif effacé
+- [ ] Écran des pistes (`/leads`) : onglets « À évaluer » et « Écartées »
 - [ ] Écran d'import (`/import`) : envoi du classeur, choix du mode, affichage du résultat
 
 ## Phase 8 — README et recette finale
