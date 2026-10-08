@@ -9,6 +9,11 @@ spring:
     url: jdbc:postgresql://localhost:5432/${POSTGRES_DB:tracker}
     username: ${POSTGRES_USER:tracker}
     password: ${POSTGRES_PASSWORD:tracker}
+  # Schéma créé par Flyway uniquement ; Hibernate se contente de le valider
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
 
 server:
   port: 8081

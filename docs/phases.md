@@ -28,12 +28,12 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 
 ### Tranche 1 — Groupes et candidatures (`feat/schema-applications`)
 
-- [ ] `ddl-auto: validate` et `open-in-view: false` dans `application.yaml`
-- [ ] Migration `V1__init_schema.sql` : `company_group` (index unique sur `lower(name)`, `CHECK` nom nettoyé et non vide), séquence `job_application_number_seq`, `job_application` (`number` avec `DEFAULT nextval`, clé étrangère `ON DELETE RESTRICT`, `CHECK` sur le statut, `CHECK` `deadline_date` nulle sur un statut clos ; pas de `CHECK` sur `sent_on`), `created_at` / `updated_at` avec `DEFAULT now()`
-- [ ] Enums `ApplicationStatus` (avec `label` et `category`) et `StatusCategory`
-- [ ] Entités `CompanyGroup` et `JobApplication` (`number` en `updatable = false`, horodatage par `@PrePersist` / `@PreUpdate`)
-- [ ] Repositories Spring Data, dont la lecture de `nextval` et la recherche d'un groupe sans tenir compte de la casse
-- [ ] Tests d'intégration sur Testcontainers (`postgres:18`) : contraintes `CHECK`, unicité du nom de groupe, unicité du `number`, suppression d'un groupe non vide refusée
+- [x] `ddl-auto: validate` et `open-in-view: false` dans `application.yaml`
+- [x] Migration `V1__init_schema.sql` : `company_group` (index unique sur `lower(name)`, `CHECK` nom nettoyé et non vide), séquence `job_application_number_seq`, `job_application` (`number` avec `DEFAULT nextval`, clé étrangère `ON DELETE RESTRICT`, `CHECK` sur le statut, `CHECK` `deadline_date` nulle sur un statut clos ; pas de `CHECK` sur `sent_on`), `created_at` / `updated_at` avec `DEFAULT now()`
+- [x] Enums `ApplicationStatus` (avec `label` et `category`) et `StatusCategory`
+- [x] Entités `CompanyGroup` et `JobApplication` (`number` en `updatable = false`, horodatage par `@PrePersist` / `@PreUpdate`)
+- [x] Repositories Spring Data, dont la lecture de `nextval` et la recherche d'un groupe sans tenir compte de la casse
+- [x] Tests d'intégration sur Testcontainers (`postgres:18`) : contraintes `CHECK`, unicité du nom de groupe, unicité du `number`, suppression d'un groupe non vide refusée
 
 ### Tranche 2 — Pistes (`feat/schema-leads`)
 
