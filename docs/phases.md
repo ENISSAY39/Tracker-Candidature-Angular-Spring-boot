@@ -43,8 +43,8 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 
 ## Phase 3 — API candidatures, groupes, statuts
 
-- [ ] `common` : `GlobalExceptionHandler` (`ProblemDetail`, RFC 9457 : 400 avec champs en erreur, 404, 409) et exceptions métier
-- [ ] `GET /api/statuses` (code, libellé, catégorie, ordre)
+- [x] `common` : `GlobalExceptionHandler` (`ProblemDetail`, RFC 9457 : 400 avec champs en erreur, 404, 409) et exceptions métier
+- [x] `GET /api/statuses` (code, libellé, catégorie, ordre)
 - [ ] Candidatures : DTO `…Request` / `…Response`, mapper manuel, service, contrôleur ; `GET`, `POST`, `PUT`, `DELETE`
 - [ ] Création du groupe à la volée à partir de `groupName` : nom nettoyé, recherche sans tenir compte de la casse, graphie existante conservée
 - [ ] Attribution du `number` par le service à partir de la séquence (immuable, jamais réutilisé, trous possibles) ; aucun `number` dans les `…Request`

@@ -25,4 +25,16 @@ class ApplicationStatusTest {
 					"REJECTED=Refus/REJECTED", "WITHDRAWN=Abandonnée/WITHDRAWN");
 	}
 
+	@Test
+	void everyStatusRequiresASentDateExceptToSendAndWithdrawn() {
+		assertThat(Arrays.stream(ApplicationStatus.values()).filter(s -> !s.requiresSentOn()))
+			.containsExactly(ApplicationStatus.TO_SEND, ApplicationStatus.WITHDRAWN);
+	}
+
+	@Test
+	void onlyRejectedAndWithdrawnAreClosed() {
+		assertThat(Arrays.stream(ApplicationStatus.values()).filter(ApplicationStatus::isClosed))
+			.containsExactly(ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN);
+	}
+
 }
