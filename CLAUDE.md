@@ -179,7 +179,7 @@ POST /import/excel                multipart `file`, option `?mode=replace`
 - « Statut » → enum par libellé exact ; un libellé inconnu rejette l'import en citant la ligne. Dates : cellules de type date uniquement, ne jamais analyser le texte de « Échéance ». Une candidature sans « Envoyée le » alors que son statut l'exige rejette l'import en citant la ligne.
 - « À évaluer » et « Abandonnées » : ligne d'en-têtes repérée par sa première cellule (`Entreprise`), colonnes lues par leur intitulé, lignes vides ignorées ; elles alimentent `job_lead` (`TO_EVALUATE` / `DISCARDED`).
 - Classeur de test : fictif et généré par POI dans le test (`*.xlsx` est ignoré par Git).
-- Conserver les `number` du classeur, puis recaler la séquence sur le maximum. Refuser l'import si la base contient déjà des candidatures, sauf `mode=replace` (vide puis recharge).
+- Conserver les `number` du classeur, puis recaler la séquence sur le maximum. Refuser l'import si la base contient déjà des candidatures, sauf `mode=replace` (vide candidatures, pistes et groupes puis recharge ; ADR 0002).
 - Recette : les compteurs affichés après import sont ceux de la ligne 2 de « Toutes les candidatures ».
 
 ## Garde-fous et méthode de travail
