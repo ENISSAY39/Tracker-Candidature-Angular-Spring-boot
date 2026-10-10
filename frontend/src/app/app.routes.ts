@@ -6,6 +6,10 @@ export const routes: Routes = [
     loadChildren: () =>
       import('./features/applications/applications.routes').then((m) => m.APPLICATIONS_ROUTES),
   },
+  {
+    path: 'leads',
+    loadChildren: () => import('./features/leads/leads.routes').then((m) => m.LEADS_ROUTES),
+  },
   { path: '', pathMatch: 'full', redirectTo: 'applications' },
   { path: '**', redirectTo: 'applications' },
 ];

@@ -90,7 +90,7 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 
 - [ ] Liste des groupes (`/groups`) et page d'un groupe (`/groups/:id`) : même liste filtrée, compteurs du groupe
 - [ ] Renommage et suppression d'un groupe (gestion du 409)
-- [ ] Backend `joblead` : CRUD, `GET /api/leads?state=`
+- [x] Backend `joblead` : CRUD, `GET /api/leads?state=`
 - [ ] « Promouvoir » : crée une candidature `TO_SEND` (groupe demandé) et supprime la piste dans la même transaction ; 409 sur une piste écartée
 - [ ] « Écarter » : passage en `DISCARDED` avec motif obligatoire, `planned_cv` et `remark` conservés
 - [ ] « Réévaluer » (`POST /api/leads/{id}/restore`) : retour en `TO_EVALUATE`, motif effacé

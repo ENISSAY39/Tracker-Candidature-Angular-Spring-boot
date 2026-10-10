@@ -1,0 +1,197 @@
+import { HarnessLoader } from '@angular/cdk/testing';
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatButtonHarness } from '@angular/material/button/testing';
+import { MatDialogHarness } from '@angular/material/dialog/testing';
+import { MatInputHarness } from '@angular/material/input/testing';
+import { MatTabGroupHarness } from '@angular/material/tabs/testing';
+import { vi } from 'vitest';
+import { JobLead } from '../lead';
+import { LeadsPage } from './leads-page';
+
+function lead(id: number, extra: Partial<JobLead> = {}): JobLead {
+  return {
+    id,
+    company: `Fictif ${id}`,
+    jobTitle: 'Stagiaire logiciel',
+    plannedCv: null,
+    remark: null,
+    discardReason: null,
+    state: 'TO_EVALUATE',
+    createdAt: '2026-10-01T08:00:00Z',
+    updatedAt: '2026-10-01T08:00:00Z',
+    ...extra,
+  };
+}
+
+const DISCARDED = lead(3, {
+  company: 'Fictif Spatial',
+  state: 'DISCARDED',
+  discardReason: 'Trop loin de Ville-Test',
+});
+
+describe('LeadsPage', () => {
+  let fixture: ComponentFixture<LeadsPage>;
+  let backend: HttpTestingController;
+  let loader: HarnessLoader;
+  let dialogs: HarnessLoader;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    backend = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(LeadsPage);
+    loader = TestbedHarnessEnvironment.loader(fixture);
+    dialogs = TestbedHarnessEnvironment.documentRootLoader(fixture);
+    // Pas de whenStable ici : le chargement en cours le bloquerait jusqu'à la réponse simulée
+    fixture.detectChanges();
+  });
+
+  afterEach(() => backend.verify());
+
+  const page = () => fixture.nativeElement as HTMLElement;
+  // Seul l'onglet actif compte : celui qu'on quitte reste dans le DOM le temps de l'animation
+  const activeTab = () => page().querySelector('.mat-mdc-tab-body-active') as HTMLElement;
+  const companies = () =>
+    Array.from(activeTab().querySelectorAll('tr.mat-mdc-row')).map((row) =>
+      row.querySelector('td')?.textContent?.trim(),
+    );
+
+  async function respond(leads: JobLead[]): Promise<void> {
+    backend.expectOne('/api/leads').flush(leads);
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(page().querySelector('mat-progress-bar')).toBeNull();
+    });
+    await fixture.whenStable();
+  }
+
+  it('shows two tabs with their number of leads, the leads to evaluate first', async () => {
+    await respond([lead(1), DISCARDED, lead(2)]);
+    const tabs = await loader.getHarness(MatTabGroupHarness);
+
+    const labels = await Promise.all((await tabs.getTabs()).map((tab) => tab.getLabel()));
+    expect(labels).toEqual(['À évaluer (2)', 'Écartées (1)']);
+    expect(companies()).toEqual(['Fictif 1', 'Fictif 2']);
+  });
+
+  it('shows the reason of the discarded leads in their tab', async () => {
+    await respond([lead(1), DISCARDED]);
+    const tabs = await loader.getHarness(MatTabGroupHarness);
+
+    await tabs.selectTab({ label: 'Écartées (1)' });
+
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(companies()).toEqual(['Fictif Spatial']);
+    });
+    const headers = Array.from(activeTab().querySelectorAll('th')).map((th) =>
+      th.textContent?.trim(),
+    );
+    expect(headers).toContain('Motif');
+    expect(page().querySelector('tr.mat-mdc-row')?.textContent).toContain(
+      'Trop loin de Ville-Test',
+    );
+  });
+
+  it('says when a tab has no lead', async () => {
+    await respond([]);
+
+    expect(page().textContent).toContain('Aucune piste à évaluer.');
+  });
+
+  it('adds a lead to evaluate from a dialog', async () => {
+    await respond([lead(1)]);
+
+    await (await loader.getHarness(MatButtonHarness.with({ text: 'Nouvelle piste' }))).click();
+    const dialog = await dialogs.getHarness(MatDialogHarness);
+    expect(await dialog.getTitleText()).toBe('Nouvelle piste');
+    await (
+      await dialog.getHarness(MatInputHarness.with({ selector: '[aria-label="Entreprise"]' }))
+    ).setValue('Fictif Ferroviaire');
+    await (
+      await dialog.getHarness(MatInputHarness.with({ selector: '[aria-label="Poste"]' }))
+    ).setValue('Stagiaire embarqué');
+    await (await dialog.getHarness(MatButtonHarness.with({ text: 'Enregistrer' }))).click();
+
+    const request = await vi.waitFor(() => backend.expectOne('/api/leads'));
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({
+      company: 'Fictif Ferroviaire',
+      jobTitle: 'Stagiaire embarqué',
+      plannedCv: null,
+      remark: null,
+    });
+    request.flush(lead(4, { company: 'Fictif Ferroviaire', jobTitle: 'Stagiaire embarqué' }));
+
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(companies()).toEqual(['Fictif 1', 'Fictif Ferroviaire']);
+    });
+    expect(document.body.textContent).toContain('Piste ajoutée.');
+  });
+
+  it('edits a lead from a dialog filled with its values', async () => {
+    await respond([lead(1, { plannedCv: 'CV_Test.pdf', remark: 'Annonce fictive' })]);
+
+    await (await loader.getHarness(MatButtonHarness.with({ text: 'Modifier' }))).click();
+    const dialog = await dialogs.getHarness(MatDialogHarness);
+    expect(await dialog.getTitleText()).toBe('Modifier la piste');
+    const remark = await dialog.getHarness(
+      MatInputHarness.with({ selector: '[aria-label="Remarque"]' }),
+    );
+    expect(await remark.getValue()).toBe('Annonce fictive');
+    await remark.setValue('Annonce fictive, à relire');
+    await (await dialog.getHarness(MatButtonHarness.with({ text: 'Enregistrer' }))).click();
+
+    const request = await vi.waitFor(() => backend.expectOne('/api/leads/1'));
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({
+      company: 'Fictif 1',
+      jobTitle: 'Stagiaire logiciel',
+      plannedCv: 'CV_Test.pdf',
+      remark: 'Annonce fictive, à relire',
+    });
+    request.flush(lead(1, { plannedCv: 'CV_Test.pdf', remark: 'Annonce fictive, à relire' }));
+
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(page().querySelector('tr.mat-mdc-row')?.textContent).toContain('à relire');
+    });
+    expect(document.body.textContent).toContain('Piste modifiée.');
+  });
+
+  it('deletes a lead once confirmed', async () => {
+    await respond([lead(1), lead(2)]);
+
+    await (await loader.getAllHarnesses(MatButtonHarness.with({ text: 'Supprimer' })))[0].click();
+    const dialog = await dialogs.getHarness(MatDialogHarness);
+    expect(await dialog.getContentText()).toContain('Fictif 1');
+    await (await dialog.getHarness(MatButtonHarness.with({ text: 'Supprimer' }))).click();
+
+    const request = await vi.waitFor(() => backend.expectOne('/api/leads/1'));
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null, { status: 204, statusText: 'No Content' });
+
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(companies()).toEqual(['Fictif 2']);
+    });
+    expect(document.body.textContent).toContain('Piste supprimée.');
+  });
+
+  it('keeps the lead when the deletion is cancelled', async () => {
+    await respond([lead(1)]);
+
+    await (await loader.getHarness(MatButtonHarness.with({ text: 'Supprimer' }))).click();
+    const dialog = await dialogs.getHarness(MatDialogHarness);
+    await (await dialog.getHarness(MatButtonHarness.with({ text: 'Annuler' }))).click();
+    await fixture.whenStable();
+
+    backend.expectNone({ method: 'DELETE' });
+    expect(companies()).toEqual(['Fictif 1']);
+  });
+});

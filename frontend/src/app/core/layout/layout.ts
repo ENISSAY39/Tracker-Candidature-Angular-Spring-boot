@@ -13,5 +13,8 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   templateUrl: './layout.html',
 })
 export class Layout {
-  protected readonly links = [{ path: '/applications', label: 'Candidatures' }];
+  protected readonly links = [
+    { path: '/applications', label: 'Candidatures' },
+    { path: '/leads', label: 'Pistes' },
+  ];
 }

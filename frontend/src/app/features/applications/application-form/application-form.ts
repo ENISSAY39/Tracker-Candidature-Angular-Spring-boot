@@ -1,9 +1,7 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, input, linkedSignal, numberAttribute } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import {
   disabled,
-  FieldTree,
   form,
   FormField,
   maxLength,
@@ -24,6 +22,7 @@ import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom, forkJoin, Observable } from 'rxjs';
 import { openConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { fromDay, toDay } from '../../../shared/dates';
+import { serverFieldErrors } from '../../../shared/server-errors';
 import { groupByCategory, Status } from '../../../shared/status';
 import { containsText, trimToNull } from '../../../shared/text';
 import { JobApplication, JobApplicationRequest } from '../application';
@@ -210,23 +209,8 @@ export class ApplicationForm {
       await this.router.navigate(['/applications', saved.id]);
       return undefined;
     } catch (error) {
-      return this.serverErrors(error);
+      return serverFieldErrors(error, this.form);
     }
-  }
-
-  /** Erreurs `errors` d'un 400 du backend, placées sous les champs concernés. */
-  private serverErrors(error: unknown): TreeValidationResult {
-    if (!(error instanceof HttpErrorResponse)) {
-      return undefined;
-    }
-    const errors: { field?: unknown; message?: unknown }[] = error.error?.errors ?? [];
-    const fields = this.form as unknown as Record<string, FieldTree<unknown> | undefined>;
-    return errors.flatMap(({ field, message }) => {
-      const fieldTree = typeof field === 'string' ? fields[field] : undefined;
-      return fieldTree && typeof message === 'string'
-        ? [{ fieldTree, kind: 'server', message }]
-        : [];
-    });
   }
 
   private statusOf(code: string): Status | undefined {
