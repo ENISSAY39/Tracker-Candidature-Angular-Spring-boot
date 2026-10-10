@@ -12,6 +12,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @DataJpaTest
 @Import(TestcontainersConfiguration.class)
@@ -22,6 +23,9 @@ class CompanyGroupRepositoryTest {
 
 	@Autowired
 	private TestEntityManager entityManager;
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	@Test
 	void savesAndReadsBackAGroup() {
@@ -55,6 +59,28 @@ class CompanyGroupRepositoryTest {
 			.extracting(CompanyGroup::getName)
 			.isEqualTo("Groupe Fictif");
 		assertThat(repository.findByNameIgnoreCase("Autre Groupe")).isEmpty();
+	}
+
+	@Test
+	void listsGroupsByNameIgnoringCase() {
+		repository.saveAndFlush(new CompanyGroup("bêta Fictif"));
+		repository.saveAndFlush(new CompanyGroup("Gamma Fictif"));
+		repository.saveAndFlush(new CompanyGroup("Alpha Fictif"));
+		entityManager.clear();
+
+		assertThat(repository.findAllOrderedByName()).extracting(CompanyGroup::getName)
+			.containsExactly("Alpha Fictif", "bêta Fictif", "Gamma Fictif");
+	}
+
+	@Test
+	void tellsWhetherAGroupHasApplications() {
+		CompanyGroup used = repository.saveAndFlush(new CompanyGroup("Groupe Fictif"));
+		CompanyGroup empty = repository.saveAndFlush(new CompanyGroup("Groupe Vide"));
+		jdbcTemplate.update("INSERT INTO job_application (number, company_group_id, company, job_title, status) "
+				+ "VALUES (1, ?, 'Fictif Aéro', 'Stagiaire', 'TO_SEND')", used.getId());
+
+		assertThat(repository.hasApplications(used.getId())).isTrue();
+		assertThat(repository.hasApplications(empty.getId())).isFalse();
 	}
 
 }

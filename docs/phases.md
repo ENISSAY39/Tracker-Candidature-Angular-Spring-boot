@@ -50,8 +50,8 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 - [x] Attribution du `number` par le service à partir de la séquence (immuable, jamais réutilisé, trous possibles) ; aucun `number` dans les `…Request`
 - [x] `PATCH /api/applications/{id}/status` avec `{status, sentOn?, deadlineDate?}` ; 400 si la date d'envoi manque, jamais d'horloge serveur
 - [x] Règles métier : `sent_on` obligatoire sauf `TO_SEND` / `WITHDRAWN`, `deadline_date` remise à `null` sur les statuts clos, champs texte facultatifs vides enregistrés à `null`
-- [ ] Groupes : `GET`, `PUT` (renommer ; 409 si le nom est déjà pris, pas de fusion), `DELETE` (409 si le groupe a des candidatures)
-- [ ] Tests : services en unitaire (Mockito), contrôleurs en `@WebMvcTest`
+- [x] Groupes : `GET`, `PUT` (renommer ; 409 si le nom est déjà pris, pas de fusion), `DELETE` (409 si le groupe a des candidatures)
+- [x] Tests : services en unitaire (Mockito), contrôleurs en `@WebMvcTest`
 
 ## Phase 4 — Import Excel
 
