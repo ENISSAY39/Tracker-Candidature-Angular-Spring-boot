@@ -2,12 +2,14 @@ import { Component, computed, inject, input, numberAttribute } from '@angular/co
 import { rxResource } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { JobApplication } from '../../applications/application';
+import { CompanyGroup, JobApplication } from '../../applications/application';
 import { ApplicationsApi } from '../../applications/applications-api';
 import { ApplicationsList } from '../../applications/applications-list/applications-list';
 import { replaceApplication } from '../../applications/replace-application';
+import { GroupActions } from '../group-actions';
+import { replaceGroup } from '../group-summary';
 import { GroupsApi } from '../groups-api';
 
 /**
@@ -17,6 +19,20 @@ import { GroupsApi } from '../groups-api';
 @Component({
   imports: [ApplicationsList, MatButtonModule, MatProgressBarModule, RouterLink],
   selector: 'app-group-page',
+  styles: `
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+  `,
   template: `
     @if (data.isLoading()) {
       <mat-progress-bar mode="indeterminate" aria-label="Chargement du groupe" />
@@ -31,7 +47,13 @@ import { GroupsApi } from '../groups-api';
         <h1>Groupe introuvable</h1>
         <p>Ce groupe n’existe pas.</p>
       } @else {
-        <h1>{{ current.name }}</h1>
+        <header>
+          <h1>{{ current.name }}</h1>
+          <div class="actions">
+            <button mat-stroked-button type="button" (click)="rename(current)">Renommer</button>
+            <button mat-stroked-button type="button" (click)="delete(current)">Supprimer</button>
+          </div>
+        </header>
         @if (applications().length === 0) {
           <p>Aucune candidature dans ce groupe.</p>
         } @else {
@@ -52,6 +74,8 @@ export class GroupPage {
 
   private readonly groupsApi = inject(GroupsApi);
   private readonly applicationsApi = inject(ApplicationsApi);
+  private readonly actions = inject(GroupActions);
+  private readonly router = inject(Router);
 
   // Pas de lecture d'un seul groupe dans l'API : la liste des groupes est courte. Chargé une fois ; passer d'un
   // groupe à l'autre ne fait que refiltrer.
@@ -85,5 +109,27 @@ export class GroupPage {
           applications: replaceApplication(loaded.applications, updated),
         },
     );
+  }
+
+  /** Le nouveau nom remplace l'ancien dans le titre et dans la colonne « Groupe » des candidatures. */
+  protected rename(group: CompanyGroup): void {
+    this.actions.rename(group).subscribe((renamed) =>
+      this.data.update(
+        (loaded) =>
+          loaded && {
+            ...loaded,
+            groups: replaceGroup(loaded.groups, renamed),
+            applications: loaded.applications.map((application) =>
+              application.groupId === renamed.id
+                ? { ...application, groupName: renamed.name }
+                : application,
+            ),
+          },
+      ),
+    );
+  }
+
+  protected delete(group: CompanyGroup): void {
+    this.actions.delete(group).subscribe(() => void this.router.navigate(['/groups']));
   }
 }

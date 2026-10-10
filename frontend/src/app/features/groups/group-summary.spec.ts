@@ -1,4 +1,4 @@
-import { summarizeGroups } from './group-summary';
+import { replaceGroup, summarizeGroups } from './group-summary';
 
 describe('summarizeGroups', () => {
   const groups = [
@@ -24,6 +24,22 @@ describe('summarizeGroups', () => {
       ['Groupe Alpha', 0],
       ['Groupe Bêta', 0],
       ['Groupe Fictif', 0],
+    ]);
+  });
+});
+
+describe('replaceGroup', () => {
+  it('replaces the renamed group and keeps the list sorted by name, ignoring case and accents', () => {
+    const groups = [
+      { id: 2, name: 'Groupe Alpha' },
+      { id: 3, name: 'groupe bêta' },
+      { id: 1, name: 'Groupe Fictif' },
+    ];
+
+    expect(replaceGroup(groups, { id: 2, name: 'Groupe Été' })).toEqual([
+      { id: 3, name: 'groupe bêta' },
+      { id: 2, name: 'Groupe Été' },
+      { id: 1, name: 'Groupe Fictif' },
     ]);
   });
 });
