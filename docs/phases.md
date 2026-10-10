@@ -73,7 +73,7 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 - [x] Table Angular Material triable avec tri par défaut (catégorie, puis `deadline_date`, puis `number`)
 - [x] Composants partagés : `status-badge` (palette par catégorie, WCAG AA), `deadline-cell` (gras `#C00000` si dépassée, `#B45309` de J à J+3)
 - [x] Compteurs (« Total » + un par catégorie non vide) calculés en `computed`
-- [ ] Filtres : catégorie ou statut, groupe, texte libre, échéance dépassée ou sous 3 jours
+- [x] Filtres : catégorie ou statut, groupe, texte libre, échéance dépassée ou sous 3 jours
 - [x] Lignes grisées pour les statuts clos, notes tronquées
 - [x] Tests Vitest : tri, compteurs, alertes d'échéance, service d'API
 

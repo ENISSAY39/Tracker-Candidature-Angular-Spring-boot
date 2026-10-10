@@ -1,0 +1,40 @@
+.counters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+
+  button {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 1rem;
+    background-color: var(--mat-sys-surface-container-high);
+    color: var(--mat-sys-on-surface);
+    font: inherit;
+    cursor: pointer;
+
+    &.selected {
+      border-color: var(--mat-sys-primary);
+      background-color: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+    }
+  }
+}
+
+.counter-count {
+  font-weight: 500;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.search {
+  min-width: 18rem;
+}
