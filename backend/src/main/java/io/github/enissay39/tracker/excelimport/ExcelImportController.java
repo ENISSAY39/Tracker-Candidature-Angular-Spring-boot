@@ -3,6 +3,7 @@ package io.github.enissay39.tracker.excelimport;
 import java.io.IOException;
 import java.io.InputStream;
 
+import io.github.enissay39.tracker.common.InvalidRequestException;
 import io.github.enissay39.tracker.excelimport.dto.ImportResultResponse;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,7 +23,11 @@ public class ExcelImportController {
 	}
 
 	@PostMapping(path = "/excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ImportResultResponse importExcel(@RequestParam("file") MultipartFile file) throws IOException {
+	public ImportResultResponse importExcel(@RequestParam(name = "file", required = false) MultipartFile file)
+			throws IOException {
+		if (file == null || file.isEmpty()) {
+			throw new InvalidRequestException("Aucun fichier n'a été envoyé.");
+		}
 		try (InputStream input = file.getInputStream()) {
 			return service.importWorkbook(input);
 		}

@@ -2,6 +2,7 @@ package io.github.enissay39.tracker.excelimport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.github.enissay39.tracker.common.ConflictException;
@@ -63,6 +64,24 @@ class ExcelImportControllerTest {
 					{"status": 400,
 					 "detail": "Import refusé : feuille « Toutes les candidatures », ligne 7 : statut « Envoyée » inconnu."}
 					""");
+	}
+
+	@Test
+	void aMissingOrEmptyFileGives400InFrench() {
+		assertThat(mvc.post().uri("/api/import/excel").multipart()).hasStatus(HttpStatus.BAD_REQUEST)
+			.bodyJson()
+			.isLenientlyEqualTo("""
+					{"status": 400, "detail": "Aucun fichier n'a été envoyé."}
+					""");
+		assertThat(mvc.post()
+			.uri("/api/import/excel")
+			.multipart()
+			.file(new MockMultipartFile("file", "vide.xlsx", null, new byte[0]))).hasStatus(HttpStatus.BAD_REQUEST)
+			.bodyJson()
+			.isLenientlyEqualTo("""
+					{"status": 400, "detail": "Aucun fichier n'a été envoyé."}
+					""");
+		verifyNoInteractions(service);
 	}
 
 }
