@@ -1,0 +1,23 @@
+mat-toolbar {
+  gap: 1.5rem;
+  background-color: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+}
+
+.title {
+  font: var(--mat-sys-title-large);
+}
+
+nav {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.active {
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
+main {
+  padding: 1.5rem;
+}
