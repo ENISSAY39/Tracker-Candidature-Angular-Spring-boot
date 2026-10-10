@@ -99,7 +99,7 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 
 ## Phase 8 — README et recette finale
 
-- [ ] `README.md` : démarrage (`docker compose up -d`, dev local), sauvegarde (`pg_dump`), import du classeur
+- [x] `README.md` : démarrage (`docker compose up -d`, dev local), sauvegarde (`pg_dump`), import du classeur
 - [ ] Recette en conteneurs : `docker compose up -d` sur `http://localhost:8090`, import du classeur, compteurs conformes
 
 ## Hors périmètre
