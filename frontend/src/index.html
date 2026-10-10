@@ -16,6 +16,15 @@
       href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined"
       rel="stylesheet"
     />
+    <script>
+      // Thème choisi appliqué avant le premier affichage (même clé que core/theme.ts)
+      try {
+        const mode = localStorage.getItem('tracker.theme');
+        if (mode === 'light' || mode === 'dark') {
+          document.documentElement.style.colorScheme = mode;
+        }
+      } catch {}
+    </script>
   </head>
   <body>
     <app-root></app-root>

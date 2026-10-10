@@ -11,6 +11,23 @@
       >
     }
   </nav>
+  <button mat-button type="button" class="theme" [matMenuTriggerFor]="themeMenu">
+    Thème : {{ themeLabel() }}
+  </button>
+  <mat-menu #themeMenu="matMenu">
+    @for (option of themeModes; track option.mode) {
+      <button
+        mat-menu-item
+        type="button"
+        role="menuitemradio"
+        [attr.aria-checked]="theme.mode() === option.mode"
+        [class.selected]="theme.mode() === option.mode"
+        (click)="theme.select(option.mode)"
+      >
+        {{ option.label }}
+      </button>
+    }
+  </mat-menu>
 </mat-toolbar>
 <main>
   <ng-content />

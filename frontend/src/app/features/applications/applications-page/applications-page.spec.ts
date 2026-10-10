@@ -167,7 +167,7 @@ describe('ApplicationsPage', () => {
     ]);
 
     const deadlineCells = rows().map((row) => row.querySelector<HTMLElement>('app-deadline-cell'));
-    expect(deadlineCells.map((cell) => cell?.style.color)).toEqual(['rgb(192, 0, 0)', '']);
+    expect(deadlineCells.map((cell) => cell?.className)).toEqual(['overdue', '']);
   });
 
   it('updates the row, its place and the counters after a quick status change', async () => {

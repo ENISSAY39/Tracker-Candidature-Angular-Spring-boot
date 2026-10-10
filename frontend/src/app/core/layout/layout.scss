@@ -18,6 +18,16 @@ nav {
   color: var(--mat-sys-on-secondary-container);
 }
 
+.theme {
+  margin-left: auto;
+}
+
+// Mode en cours dans le menu du thème
+.selected {
+  font-weight: 500;
+  background-color: var(--mat-sys-secondary-container);
+}
+
 main {
   padding: 1.5rem;
 }
