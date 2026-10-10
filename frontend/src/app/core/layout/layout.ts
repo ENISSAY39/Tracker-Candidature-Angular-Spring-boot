@@ -17,5 +17,6 @@ export class Layout {
     { path: '/applications', label: 'Candidatures' },
     { path: '/groups', label: 'Groupes' },
     { path: '/leads', label: 'Pistes' },
+    { path: '/import', label: 'Import' },
   ];
 }

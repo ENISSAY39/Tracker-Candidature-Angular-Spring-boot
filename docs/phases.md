@@ -95,7 +95,7 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 - [x] « Écarter » : passage en `DISCARDED` avec motif obligatoire, `planned_cv` et `remark` conservés
 - [x] « Réévaluer » (`POST /api/leads/{id}/restore`) : retour en `TO_EVALUATE`, motif effacé
 - [x] Écran des pistes (`/leads`) : onglets « À évaluer » et « Écartées »
-- [ ] Écran d'import (`/import`) : envoi du classeur, choix du mode, affichage du résultat
+- [x] Écran d'import (`/import`) : envoi du classeur, choix du mode, affichage du résultat
 
 ## Phase 8 — README et recette finale
 

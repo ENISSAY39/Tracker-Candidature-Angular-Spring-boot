@@ -47,6 +47,15 @@ describe('App', () => {
     expect(page.querySelector('h1')?.textContent).toContain('Pistes');
   });
 
+  it('offers the import in the navigation and opens its page', async () => {
+    const page = await renderAt('/import');
+
+    const link = page.querySelector<HTMLAnchorElement>('nav a[href="/import"]');
+    expect(link?.textContent?.trim()).toBe('Import');
+    expect(link?.getAttribute('aria-current')).toBe('page');
+    expect(page.querySelector('h1')?.textContent).toContain('Import du classeur');
+  });
+
   it('marks the navigation entry of the current page as active', async () => {
     const page = await renderAt('/applications');
 
