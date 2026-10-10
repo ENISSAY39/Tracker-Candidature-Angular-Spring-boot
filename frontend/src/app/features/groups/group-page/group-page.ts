@@ -9,7 +9,7 @@ import { ApplicationsApi } from '../../applications/applications-api';
 import { ApplicationsList } from '../../applications/applications-list/applications-list';
 import { replaceApplication } from '../../applications/replace-application';
 import { GroupActions } from '../group-actions';
-import { replaceGroup } from '../group-summary';
+import { renameGroupOf, replaceGroup } from '../group-summary';
 import { GroupsApi } from '../groups-api';
 
 /**
@@ -119,11 +119,7 @@ export class GroupPage {
           loaded && {
             ...loaded,
             groups: replaceGroup(loaded.groups, renamed),
-            applications: loaded.applications.map((application) =>
-              application.groupId === renamed.id
-                ? { ...application, groupName: renamed.name }
-                : application,
-            ),
+            applications: renameGroupOf(loaded.applications, renamed),
           },
       ),
     );

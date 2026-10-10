@@ -1,4 +1,5 @@
-import { replaceGroup, summarizeGroups } from './group-summary';
+import { JobApplication } from '../applications/application';
+import { renameGroupOf, replaceGroup, summarizeGroups } from './group-summary';
 
 describe('summarizeGroups', () => {
   const groups = [
@@ -41,5 +42,18 @@ describe('replaceGroup', () => {
       { id: 2, name: 'Groupe Été' },
       { id: 1, name: 'Groupe Fictif' },
     ]);
+  });
+});
+
+describe('renameGroupOf', () => {
+  it('gives the new name to the applications of the renamed group only', () => {
+    const applications = [
+      { id: 1, groupId: 1, groupName: 'Groupe Fictif' },
+      { id: 2, groupId: 2, groupName: 'Groupe Alpha' },
+    ] as JobApplication[];
+
+    expect(
+      renameGroupOf(applications, { id: 1, name: 'Groupe Renommé' }).map((app) => app.groupName),
+    ).toEqual(['Groupe Renommé', 'Groupe Alpha']);
   });
 });

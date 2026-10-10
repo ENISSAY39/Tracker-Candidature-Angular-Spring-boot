@@ -214,4 +214,27 @@ describe('GroupPage', () => {
     await vi.waitFor(() => expect(TestBed.inject(Router).url).toBe('/groups'));
     expect(document.body.textContent).toContain('Groupe « Groupe Alpha » supprimé.');
   });
+
+  it('stays on the group when it still has applications', async () => {
+    open(1);
+    await respond([application(1, 1, 'PENDING')]);
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const dialogs = TestbedHarnessEnvironment.documentRootLoader(fixture);
+
+    await (await loader.getHarness(MatButtonHarness.with({ text: 'Supprimer' }))).click();
+    const dialog = await dialogs.getHarness(MatDialogHarness);
+    await (await dialog.getHarness(MatButtonHarness.with({ text: 'Supprimer' }))).click();
+    (await vi.waitFor(() => backend.expectOne('/api/groups/1'))).flush(
+      { status: 409, detail: 'Le groupe « Groupe Fictif » a des candidatures.' },
+      { status: 409, statusText: 'Conflict' },
+    );
+
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain(
+        'Le groupe « Groupe Fictif » a encore des candidatures : il ne peut pas être supprimé.',
+      ),
+    );
+    expect(TestBed.inject(Router).url).toBe('/');
+    expect(page().querySelector('h1')?.textContent?.trim()).toBe('Groupe Fictif');
+  });
 });
