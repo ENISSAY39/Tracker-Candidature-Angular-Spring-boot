@@ -78,6 +78,7 @@ public class JobApplicationService {
 		application.setSentOn(sentOn);
 		// Statut clos : plus d'échéance ; une réouverture ne restaure rien
 		application.setDeadlineDate(status.isClosed() ? null : deadlineDate);
+		// Écriture immédiate, comme pour update : la réponse porte la date de modification
 		repository.saveAndFlush(application);
 		return JobApplicationMapper.toResponse(application);
 	}

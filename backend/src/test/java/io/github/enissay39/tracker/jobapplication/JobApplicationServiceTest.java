@@ -285,6 +285,30 @@ class JobApplicationServiceTest {
 	}
 
 	@Test
+	void changeStatusReplacesTheExistingDatesWithTheGivenOnes() {
+		when(repository.findById(5L)).thenReturn(Optional.of(sentApplication(ApplicationStatus.PENDING)));
+
+		JobApplicationResponse changed = service.changeStatus(5L,
+				new StatusChangeRequest(ApplicationStatus.INTERVIEW, LocalDate.of(2026, 10, 6), LocalDate.of(2026, 10, 22)));
+
+		assertThat(changed.sentOn()).isEqualTo(LocalDate.of(2026, 10, 6));
+		assertThat(changed.deadlineDate()).isEqualTo(LocalDate.of(2026, 10, 22));
+	}
+
+	@Test
+	void reopeningAClosedApplicationTakesTheGivenDeadlineDate() {
+		JobApplication closed = sentApplication(ApplicationStatus.PENDING);
+		closed.setDeadlineDate(null);
+		closed.setStatus(ApplicationStatus.WITHDRAWN);
+		when(repository.findById(5L)).thenReturn(Optional.of(closed));
+
+		JobApplicationResponse reopened = service.changeStatus(5L,
+				new StatusChangeRequest(ApplicationStatus.PENDING, null, LocalDate.of(2026, 11, 2)));
+
+		assertThat(reopened.deadlineDate()).isEqualTo(LocalDate.of(2026, 11, 2));
+	}
+
+	@Test
 	void changeStatusKeepsTheExistingDatesWhenNoneAreGiven() {
 		JobApplication existing = sentApplication(ApplicationStatus.PENDING);
 		when(repository.findById(5L)).thenReturn(Optional.of(existing));
