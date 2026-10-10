@@ -61,7 +61,7 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 - [x] Rejet de l'import avec le numéro de ligne si « Envoyée le » manque alors que le statut l'exige
 - [x] Lecture des feuilles « À évaluer » et « Abandonnées » vers `job_lead` (en-têtes repérés par `Entreprise`, lignes vides ignorées) ; feuilles par employeur et « Autres » ignorées
 - [x] Conservation des `number` du classeur, recalage de la séquence sur le maximum
-- [ ] `POST /api/import/excel` : tout ou rien (une transaction), refus si la base contient déjà des candidatures sauf `?mode=replace`
+- [x] `POST /api/import/excel` : tout ou rien (une transaction), refus si la base contient déjà des candidatures sauf `?mode=replace`
 - [x] Réponse avec le nombre de lignes créées par table
 - [x] Tests d'intégration sur Testcontainers avec un classeur fictif généré par POI dans le test (`*.xlsx` est ignoré par Git)
 - [ ] Recette : les compteurs après import correspondent à la ligne 2 de « Toutes les candidatures »

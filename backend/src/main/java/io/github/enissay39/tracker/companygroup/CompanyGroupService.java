@@ -31,6 +31,14 @@ public class CompanyGroupService {
 	}
 
 	/**
+	 * Supprime tous les groupes, une fois les candidatures supprimées. Réservé à l'import en mode remplacement.
+	 */
+	@Transactional
+	public void deleteAll() {
+		repository.deleteAllInBatch();
+	}
+
+	/**
 	 * Groupe portant ce nom, nettoyé de ses espaces de début et de fin, sans tenir compte de la casse ; créé s'il
 	 * n'existe pas. Un groupe trouvé garde sa graphie.
 	 */

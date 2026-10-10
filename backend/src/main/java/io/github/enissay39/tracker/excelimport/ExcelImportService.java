@@ -33,11 +33,17 @@ public class ExcelImportService {
 	}
 
 	@Transactional
-	public ImportResultResponse importWorkbook(InputStream input) {
-		if (applicationService.hasApplications()) {
+	public ImportResultResponse importWorkbook(InputStream input, ImportMode mode) {
+		if (mode == ImportMode.INITIAL && applicationService.hasApplications()) {
 			throw new ConflictException("La base contient déjà des candidatures : l'import est refusé.");
 		}
 		ParsedWorkbook workbook = read(input);
+		if (mode == ImportMode.REPLACE) {
+			// Après la validation du nouveau classeur : un classeur rejeté laisse les données intactes
+			applicationService.deleteAll();
+			leadService.deleteAll();
+			groupService.deleteAll();
+		}
 		long groupsBefore = groupService.count();
 		for (ImportedApplication application : workbook.applications()) {
 			applicationService.importApplication(application.number(), application.request());
