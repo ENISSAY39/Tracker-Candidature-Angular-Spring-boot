@@ -6,7 +6,7 @@ interface BadgeColors {
   text: string;
 }
 
-// Palette du classeur par catégorie, contraste WCAG AA vérifié (≥ 4,5:1). Seules couleurs codées en dur.
+// Palette du classeur par catégorie, contraste WCAG AA vérifié (≥ 4,5:1), comme les couleurs d'alerte de CLAUDE.md
 const PALETTE: Record<StatusCategoryCode, BadgeColors> = {
   OFFER: { background: '#C6EFCE', text: '#006100' },
   INTERVIEW: { background: '#BDD7EE', text: '#1F4E79' },

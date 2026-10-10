@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { addDays, today } from '../../../shared/dates';
 import { Status } from '../../../shared/status';
 import { JobApplication } from '../application';
 import { ApplicationsPage } from './applications-page';
@@ -126,6 +127,31 @@ describe('ApplicationsPage', () => {
       '18/10/2026',
       '04/10 : candidature déposée.\nÀ relancer si pas de réponse.',
     ]);
+  });
+
+  it('shows the total then one counter per non-empty category, before the table', async () => {
+    await respond([
+      application(1, 'REJECTED'),
+      application(2, 'PENDING'),
+      application(3, 'INTERVIEW'),
+      application(4, 'PENDING'),
+    ]);
+
+    const counters = Array.from(page().querySelectorAll('.counters li')).map((li) =>
+      li.textContent?.replace(/\s+/g, ' ').trim(),
+    );
+    expect(counters).toEqual(['Total 4', 'Entretien 1', 'En attente 2', 'Refus 1']);
+  });
+
+  it('highlights an overdue deadline date but not the one of a closed application', async () => {
+    const yesterday = addDays(today(), -1);
+    await respond([
+      application(1, 'PENDING', { deadlineDate: yesterday }),
+      application(2, 'REJECTED', { deadlineDate: yesterday }),
+    ]);
+
+    const deadlineCells = rows().map((row) => row.querySelector<HTMLElement>('app-deadline-cell'));
+    expect(deadlineCells.map((cell) => cell?.style.color)).toEqual(['rgb(192, 0, 0)', '']);
   });
 
   it('greys out the rows of closed applications', async () => {

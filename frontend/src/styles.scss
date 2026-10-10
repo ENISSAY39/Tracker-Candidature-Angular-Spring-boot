@@ -3,7 +3,11 @@
 // components according to the Material 3 design spec.
 // Learn more about theming and how to use it for your application's
 // custom components at https://material.angular.dev/guide/theming
+@use '@angular/cdk' as cdk;
 @use '@angular/material' as mat;
+
+// Classe cdk-visually-hidden : texte réservé aux lecteurs d'écran
+@include cdk.a11y-visually-hidden();
 
 html {
   height: 100%;
