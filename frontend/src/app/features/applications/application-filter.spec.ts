@@ -7,6 +7,8 @@ function status(code: string, category: StatusCategoryCode, rank: number): Statu
     code,
     label: code,
     order: rank,
+    requiresSentOn: code !== 'TO_SEND' && code !== 'WITHDRAWN',
+    closed: category === 'REJECTED' || category === 'WITHDRAWN',
     category: { code: category, label: category, order: rank },
   };
 }

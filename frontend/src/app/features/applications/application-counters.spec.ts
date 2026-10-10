@@ -3,7 +3,14 @@ import { JobApplication } from './application';
 import { countApplications } from './application-counters';
 
 function status(code: string, category: StatusCategoryCode, label: string, rank: number): Status {
-  return { code, label: code, order: rank, category: { code: category, label, order: rank } };
+  return {
+    code,
+    label: code,
+    order: rank,
+    requiresSentOn: code !== 'TO_SEND' && code !== 'WITHDRAWN',
+    closed: category === 'REJECTED' || category === 'WITHDRAWN',
+    category: { code: category, label, order: rank },
+  };
 }
 
 const STATUSES: Status[] = [

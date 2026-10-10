@@ -54,6 +54,10 @@ describe('ApplicationsApi', () => {
         code: 'PENDING',
         label: 'En attente',
         order: 7,
+        requiresSentOn: true,
+
+        closed: false,
+
         category: { code: 'PENDING', label: 'En attente', order: 4 },
       },
     ];

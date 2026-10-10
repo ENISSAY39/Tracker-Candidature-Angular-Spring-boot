@@ -16,24 +16,40 @@ const STATUSES: Status[] = [
     code: 'INTERVIEW',
     label: 'Entretien',
     order: 2,
+    requiresSentOn: true,
+
+    closed: false,
+
     category: { code: 'INTERVIEW', label: 'Entretien', order: 2 },
   },
   {
     code: 'UNDER_REVIEW',
     label: 'En examen',
     order: 3,
+    requiresSentOn: true,
+
+    closed: false,
+
     category: { code: 'OPENED', label: 'Dossier ouvert par le recruteur', order: 3 },
   },
   {
     code: 'SELECTION',
     label: 'Sélection',
     order: 6,
+    requiresSentOn: true,
+
+    closed: false,
+
     category: { code: 'OPENED', label: 'Dossier ouvert par le recruteur', order: 3 },
   },
   {
     code: 'PENDING',
     label: 'En attente',
     order: 7,
+    requiresSentOn: true,
+
+    closed: false,
+
     category: { code: 'PENDING', label: 'En attente', order: 4 },
   },
 ];

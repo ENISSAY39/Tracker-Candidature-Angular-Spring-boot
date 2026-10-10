@@ -14,12 +14,14 @@ export interface Status {
   code: string;
   label: string;
   order: number;
+  /** La candidature doit avoir une date d'envoi (tous les statuts sauf « À envoyer » et « Abandonnée »). */
+  requiresSentOn: boolean;
+  /** Statut clos (refus, abandonnée) : plus d'échéance, ligne grisée, aucune alerte. */
+  closed: boolean;
   category: StatusCategory;
 }
 
-const CLOSED_CATEGORIES: ReadonlySet<StatusCategoryCode> = new Set(['REJECTED', 'WITHDRAWN']);
-
-/** Statut clos (refus, abandonnée) : plus d'échéance, ligne grisée, aucune alerte. */
+/** Statut clos selon l'API : plus d'échéance, ligne grisée, aucune alerte. */
 export function isClosed(status: Status): boolean {
-  return CLOSED_CATEGORIES.has(status.category.code);
+  return status.closed;
 }
