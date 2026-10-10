@@ -26,6 +26,10 @@ public class CompanyGroupService {
 		return repository.findAllOrderedByName().stream().map(CompanyGroupMapper::toResponse).toList();
 	}
 
+	public long count() {
+		return repository.count();
+	}
+
 	/**
 	 * Groupe portant ce nom, nettoyé de ses espaces de début et de fin, sans tenir compte de la casse ; créé s'il
 	 * n'existe pas. Un groupe trouvé garde sa graphie.

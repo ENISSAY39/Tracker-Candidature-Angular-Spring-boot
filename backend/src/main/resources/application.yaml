@@ -14,6 +14,11 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  # Import du classeur : envoi limité à 10 Mo
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
   # Interface en français seulement : messages de validation en français, sans tenir compte d'Accept-Language
   web:
     locale: fr_FR

@@ -53,6 +53,18 @@ class GlobalExceptionHandlerTest {
 	}
 
 	@Test
+	void anInvalidRequestGivesA400ProblemDetailWithItsMessage() {
+		assertThat(mvc.get().uri("/probe/invalid-request")).hasStatus(HttpStatus.BAD_REQUEST)
+			.hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
+			.bodyJson()
+			.isLenientlyEqualTo("""
+					{"status": 400, "title": "Requête invalide",
+					 "detail": "Le fichier n'est pas un classeur Excel lisible (.xlsx)."}
+					""")
+			.doesNotHavePath("$.errors");
+	}
+
+	@Test
 	void aBusinessRuleOnAFieldGivesA400NamingTheField() {
 		assertThat(mvc.get().uri("/probe/field-rule")).hasStatus(HttpStatus.BAD_REQUEST)
 			.hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
@@ -165,6 +177,11 @@ class GlobalExceptionHandlerTest {
 		@GetMapping("/conflict")
 		void conflict() {
 			throw new ConflictException("Le groupe « Groupe Fictif » existe déjà.");
+		}
+
+		@GetMapping("/invalid-request")
+		void invalidRequest() {
+			throw new InvalidRequestException("Le fichier n'est pas un classeur Excel lisible (.xlsx).");
 		}
 
 		@GetMapping("/field-rule")

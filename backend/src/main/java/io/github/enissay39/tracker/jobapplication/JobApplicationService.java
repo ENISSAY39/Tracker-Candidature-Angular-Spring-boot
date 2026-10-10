@@ -38,11 +38,29 @@ public class JobApplicationService {
 	@Transactional
 	public JobApplicationResponse create(JobApplicationRequest request) {
 		requireSentOnIfNeeded(request.status(), request.sentOn());
-		CompanyGroup group = groupService.findOrCreate(request.groupName());
-		JobApplication application = new JobApplication(repository.nextNumber(), group, request.company().trim(),
-				request.jobTitle().trim(), request.status());
-		copyDetails(request, application);
-		return JobApplicationMapper.toResponse(repository.save(application));
+		return JobApplicationMapper.toResponse(repository.save(newApplication(repository.nextNumber(), request)));
+	}
+
+	public boolean hasApplications() {
+		return repository.count() > 0;
+	}
+
+	/**
+	 * Crée une candidature avec le numéro imposé par le classeur importé, selon les mêmes règles qu'une création.
+	 * Une fois l'import terminé, {@link #alignNumberSequence()} recale la séquence.
+	 */
+	@Transactional
+	public void importApplication(int number, JobApplicationRequest request) {
+		requireSentOnIfNeeded(request.status(), request.sentOn());
+		repository.save(newApplication(number, request));
+	}
+
+	/**
+	 * Le prochain numéro attribué sera le plus grand numéro en base + 1.
+	 */
+	@Transactional
+	public void alignNumberSequence() {
+		repository.alignNumberSequence();
 	}
 
 	/**
@@ -89,6 +107,14 @@ public class JobApplicationService {
 	@Transactional
 	public void delete(Long id) {
 		repository.delete(findExisting(id));
+	}
+
+	private JobApplication newApplication(int number, JobApplicationRequest request) {
+		CompanyGroup group = groupService.findOrCreate(request.groupName());
+		JobApplication application = new JobApplication(number, group, request.company().trim(),
+				request.jobTitle().trim(), request.status());
+		copyDetails(request, application);
+		return application;
 	}
 
 	private JobApplication findExisting(Long id) {
