@@ -46,7 +46,7 @@ interface ApplicationFormModel {
 }
 
 // Longueurs maximales des colonnes, comme les @Size du backend
-const MAX_SHORT_TEXT_LENGTH_LENGTH = 100;
+const MAX_SHORT_TEXT_LENGTH = 100;
 const MAX_TEXT_LENGTH = 255;
 
 /**
