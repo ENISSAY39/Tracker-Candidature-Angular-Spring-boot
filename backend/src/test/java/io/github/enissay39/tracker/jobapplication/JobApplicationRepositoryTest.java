@@ -186,6 +186,16 @@ class JobApplicationRepositoryTest {
 	}
 
 	@Test
+	void readsAllApplicationsOrderedByNumber() {
+		repository.saveAndFlush(application(3, ApplicationStatus.TO_SEND));
+		repository.saveAndFlush(application(1, ApplicationStatus.TO_SEND));
+		repository.saveAndFlush(application(2, ApplicationStatus.TO_SEND));
+		entityManager.clear();
+
+		assertThat(repository.findAllWithCompanyGroup()).extracting(JobApplication::getNumber).containsExactly(1, 2, 3);
+	}
+
+	@Test
 	void setsCreationAndModificationDatesFromTheEntity() {
 		Instant before = Instant.now();
 		JobApplication application = repository.saveAndFlush(application(1, ApplicationStatus.TO_SEND));
