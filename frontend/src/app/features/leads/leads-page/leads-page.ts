@@ -5,14 +5,20 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { Router } from '@angular/router';
 import { filter, switchMap } from 'rxjs';
 import { openConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { JobLead } from '../lead';
+import { openDiscardLeadDialog } from '../discard-lead-dialog/discard-lead-dialog';
 import { openLeadDialog } from '../lead-dialog/lead-dialog';
 import { LeadsApi } from '../leads-api';
 import { LeadsTable } from '../leads-table/leads-table';
+import { openPromoteLeadDialog } from '../promote-lead-dialog/promote-lead-dialog';
 
-/** Pistes en deux onglets, à évaluer et écartées, avec ajout, modification et suppression. */
+/**
+ * Pistes en deux onglets, à évaluer et écartées : ajout, modification, suppression, et les gestes promouvoir, écarter
+ * et réévaluer.
+ */
 @Component({
   imports: [LeadsTable, MatButtonModule, MatProgressBarModule, MatTabsModule],
   selector: 'app-leads-page',
@@ -46,6 +52,8 @@ import { LeadsTable } from '../leads-table/leads-table';
           } @else {
             <app-leads-table
               [leads]="toEvaluate()"
+              (promote)="promote($event)"
+              (discard)="discard($event)"
               (edit)="edit($event)"
               (remove)="remove($event)"
             />
@@ -58,6 +66,7 @@ import { LeadsTable } from '../leads-table/leads-table';
             <app-leads-table
               [leads]="discarded()"
               [discarded]="true"
+              (restore)="restore($event)"
               (edit)="edit($event)"
               (remove)="remove($event)"
             />
@@ -71,6 +80,7 @@ export class LeadsPage {
   private readonly api = inject(LeadsApi);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
 
   protected readonly leads = rxResource({ stream: () => this.api.list() });
 
@@ -91,11 +101,41 @@ export class LeadsPage {
       });
   }
 
+  /** Après la promotion, la fiche de la candidature créée s'ouvre pour la compléter. */
+  protected promote(lead: JobLead): void {
+    openPromoteLeadDialog(this.dialog, lead)
+      .pipe(filter((created) => created !== undefined))
+      .subscribe((created) => {
+        this.notify(`Piste promue : candidature n° ${created.number} créée.`);
+        void this.router.navigate(['/applications', created.id]);
+      });
+  }
+
+  protected discard(lead: JobLead): void {
+    openDiscardLeadDialog(this.dialog, lead)
+      .pipe(filter((discarded) => discarded !== undefined))
+      .subscribe((discarded) => {
+        this.replace(discarded);
+        this.notify('Piste écartée.');
+      });
+  }
+
+  protected restore(lead: JobLead): void {
+    this.api.restore(lead.id).subscribe({
+      next: (restored) => {
+        this.replace(restored);
+        this.notify('Piste remise à évaluer.');
+      },
+      // Échec déjà affiché par l'intercepteur : la piste reste où elle est
+      error: () => undefined,
+    });
+  }
+
   protected edit(lead: JobLead): void {
     openLeadDialog(this.dialog, lead)
       .pipe(filter((saved) => saved !== undefined))
       .subscribe((saved) => {
-        this.leads.update((leads) => leads?.map((each) => (each.id === saved.id ? saved : each)));
+        this.replace(saved);
         this.notify('Piste modifiée.');
       });
   }
@@ -118,6 +158,11 @@ export class LeadsPage {
         // Échec déjà affiché par l'intercepteur : la piste reste dans la liste
         error: () => undefined,
       });
+  }
+
+  /** La piste renvoyée par le serveur remplace l'ancienne ; un changement d'état la fait changer d'onglet. */
+  private replace(updated: JobLead): void {
+    this.leads.update((leads) => leads?.map((each) => (each.id === updated.id ? updated : each)));
   }
 
   private notify(message: string): void {
