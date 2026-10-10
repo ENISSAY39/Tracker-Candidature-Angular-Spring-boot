@@ -187,6 +187,95 @@ class JobApplicationServiceTest {
 			.containsExactly(tuple(1, "Groupe Fictif"), tuple(2, "Autre Groupe"));
 	}
 
+	@Test
+	void updateReplacesEveryFieldAndKeepsTheNumber() {
+		JobApplication existing = existingApplication();
+		existing.setNotes("Ancienne note");
+		existing.setChannel("JobTeaser");
+		when(repository.findById(5L)).thenReturn(Optional.of(existing));
+		when(groupRepository.findByNameIgnoreCase("Groupe Fictif")).thenReturn(Optional.of(existing.getCompanyGroup()));
+
+		JobApplicationResponse updated = service.update(5L, new JobApplicationRequest("Groupe Fictif",
+				" Fictif Aéro - autre site ", "Stagiaire data", ApplicationStatus.INTERVIEW, LocalDate.of(2026, 10, 4),
+				"Entretien le 20/10", LocalDate.of(2026, 10, 20), "Entretien planifié.", "Mars 2027, 6 mois", null,
+				"CV_Data.pdf"));
+
+		assertThat(updated.number()).isEqualTo(26);
+		assertThat(updated.company()).isEqualTo("Fictif Aéro - autre site");
+		assertThat(updated.jobTitle()).isEqualTo("Stagiaire data");
+		assertThat(updated.status()).isEqualTo(ApplicationStatus.INTERVIEW);
+		assertThat(updated.sentOn()).isEqualTo(LocalDate.of(2026, 10, 4));
+		assertThat(updated.deadlineLabel()).isEqualTo("Entretien le 20/10");
+		assertThat(updated.deadlineDate()).isEqualTo(LocalDate.of(2026, 10, 20));
+		assertThat(updated.notes()).isEqualTo("Entretien planifié.");
+		assertThat(updated.startPeriod()).isEqualTo("Mars 2027, 6 mois");
+		assertThat(updated.channel()).isNull();
+		assertThat(updated.cvSent()).isEqualTo("CV_Data.pdf");
+	}
+
+	@Test
+	void updateMovesTheApplicationToAnotherGroupCreatedIfUnknown() {
+		JobApplication existing = existingApplication();
+		when(repository.findById(5L)).thenReturn(Optional.of(existing));
+		when(groupRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		JobApplicationResponse updated = service.update(5L, request(" Nouveau Groupe ", ApplicationStatus.TO_SEND));
+
+		assertThat(updated.groupName()).isEqualTo("Nouveau Groupe");
+		verify(groupRepository, never()).delete(any());
+	}
+
+	@Test
+	void updateRefusesAStatusThatRequiresASentDateWithoutOne() {
+		when(repository.findById(5L)).thenReturn(Optional.of(existingApplication()));
+
+		assertThatThrownBy(() -> service.update(5L, request("Groupe Fictif", ApplicationStatus.PENDING, null, null)))
+			.isInstanceOf(FieldRuleViolationException.class)
+			.extracting("field")
+			.isEqualTo("sentOn");
+	}
+
+	@Test
+	void updateDropsTheDeadlineDateWhenTheApplicationIsClosed() {
+		JobApplication existing = existingApplication();
+		existing.setDeadlineDate(LocalDate.of(2026, 10, 18));
+		when(repository.findById(5L)).thenReturn(Optional.of(existing));
+		when(groupRepository.findByNameIgnoreCase("Groupe Fictif")).thenReturn(Optional.of(existing.getCompanyGroup()));
+
+		JobApplicationResponse updated = service.update(5L, request("Groupe Fictif", ApplicationStatus.REJECTED,
+				LocalDate.of(2026, 10, 4), LocalDate.of(2026, 10, 18)));
+
+		assertThat(updated.deadlineDate()).isNull();
+	}
+
+	@Test
+	void updateOfAnUnknownApplicationIsNotFound() {
+		assertThatThrownBy(() -> service.update(42L, request("Groupe Fictif", ApplicationStatus.TO_SEND)))
+			.isInstanceOf(ResourceNotFoundException.class)
+			.hasMessage("Candidature 42 introuvable.");
+	}
+
+	@Test
+	void deleteRemovesTheApplication() {
+		JobApplication existing = existingApplication();
+		when(repository.findById(5L)).thenReturn(Optional.of(existing));
+
+		service.delete(5L);
+
+		verify(repository).delete(existing);
+	}
+
+	@Test
+	void deleteOfAnUnknownApplicationIsNotFound() {
+		assertThatThrownBy(() -> service.delete(42L)).isInstanceOf(ResourceNotFoundException.class)
+			.hasMessage("Candidature 42 introuvable.");
+	}
+
+	private JobApplication existingApplication() {
+		return new JobApplication(26, new CompanyGroup("Groupe Fictif"), "Fictif Aéro", "Stagiaire ingénieur logiciel",
+				ApplicationStatus.TO_SEND);
+	}
+
 	private void savedEntitiesAreReturnedAsIs() {
 		when(groupRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
