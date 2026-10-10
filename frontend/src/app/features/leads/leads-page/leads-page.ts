@@ -110,9 +110,13 @@ export class LeadsPage {
         filter(Boolean),
         switchMap(() => this.api.delete(lead.id)),
       )
-      .subscribe(() => {
-        this.leads.update((leads) => leads?.filter((each) => each.id !== lead.id));
-        this.notify('Piste supprimée.');
+      .subscribe({
+        next: () => {
+          this.leads.update((leads) => leads?.filter((each) => each.id !== lead.id));
+          this.notify('Piste supprimée.');
+        },
+        // Échec déjà affiché par l'intercepteur : la piste reste dans la liste
+        error: () => undefined,
       });
   }
 

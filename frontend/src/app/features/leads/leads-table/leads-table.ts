@@ -50,7 +50,7 @@ import { JobLead } from '../lead';
           <button
             mat-button
             type="button"
-            [attr.aria-label]="'Modifier la piste ' + lead.company"
+            [attr.aria-label]="'Modifier la piste ' + lead.company + ', ' + lead.jobTitle"
             (click)="edit.emit(lead)"
           >
             Modifier
@@ -58,7 +58,7 @@ import { JobLead } from '../lead';
           <button
             mat-button
             type="button"
-            [attr.aria-label]="'Supprimer la piste ' + lead.company"
+            [attr.aria-label]="'Supprimer la piste ' + lead.company + ', ' + lead.jobTitle"
             (click)="remove.emit(lead)"
           >
             Supprimer

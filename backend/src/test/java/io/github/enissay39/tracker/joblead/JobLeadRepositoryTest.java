@@ -114,9 +114,9 @@ class JobLeadRepositoryTest {
 		JobLead discarded = repository.saveAndFlush(discardedLead("Trop loin de Ville-Test"));
 		entityManager.clear();
 
-		assertThat(repository.findByState(LeadState.TO_EVALUATE)).extracting(JobLead::getId)
+		assertThat(repository.findByStateOrderByCreatedAtAscIdAsc(LeadState.TO_EVALUATE)).extracting(JobLead::getId)
 			.containsExactly(toEvaluate.getId());
-		assertThat(repository.findByState(LeadState.DISCARDED)).extracting(JobLead::getId)
+		assertThat(repository.findByStateOrderByCreatedAtAscIdAsc(LeadState.DISCARDED)).extracting(JobLead::getId)
 			.containsExactly(discarded.getId());
 	}
 
