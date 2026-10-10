@@ -15,6 +15,7 @@ import java.util.List;
 import io.github.enissay39.tracker.common.FieldRuleViolationException;
 import io.github.enissay39.tracker.common.ResourceNotFoundException;
 import io.github.enissay39.tracker.jobapplication.dto.JobApplicationResponse;
+import io.github.enissay39.tracker.jobapplication.dto.StatusChangeRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -188,6 +189,80 @@ class JobApplicationControllerTest {
 		doThrow(new ResourceNotFoundException("Candidature 42 introuvable.")).when(service).delete(42L);
 
 		assertThat(mvc.delete().uri("/api/applications/42")).hasStatus(HttpStatus.NOT_FOUND)
+			.hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
+			.bodyJson()
+			.isLenientlyEqualTo("""
+					{"status": 404, "detail": "Candidature 42 introuvable."}
+					""");
+	}
+
+	@Test
+	void changeStatusGives200WithTheUpdatedApplication() {
+		when(service.changeStatus(5L, new StatusChangeRequest(ApplicationStatus.PENDING, LocalDate.of(2026, 10, 4),
+				LocalDate.of(2026, 10, 18))))
+			.thenReturn(application());
+
+		assertThat(mvc.patch().uri("/api/applications/5/status").contentType(MediaType.APPLICATION_JSON).content("""
+				{"status": "PENDING", "sentOn": "2026-10-04", "deadlineDate": "2026-10-18"}
+				""")).hasStatusOk().bodyJson().isStrictlyEqualTo(APPLICATION_JSON);
+	}
+
+	@Test
+	void changeStatusAcceptsAStatusAlone() {
+		when(service.changeStatus(5L, new StatusChangeRequest(ApplicationStatus.INTERVIEW, null, null)))
+			.thenReturn(application());
+
+		assertThat(mvc.patch().uri("/api/applications/5/status").contentType(MediaType.APPLICATION_JSON).content("""
+				{"status": "INTERVIEW"}
+				""")).hasStatusOk();
+	}
+
+	@Test
+	void changeStatusWithoutStatusGives400NamingTheField() {
+		assertThat(mvc.patch().uri("/api/applications/5/status").contentType(MediaType.APPLICATION_JSON).content("""
+				{"sentOn": "2026-10-04"}
+				""")).hasStatus(HttpStatus.BAD_REQUEST)
+			.bodyJson()
+			.isLenientlyEqualTo("""
+					{"errors": [{"field": "status", "message": "ne doit pas être nul"}]}
+					""");
+		verifyNoInteractions(service);
+	}
+
+	@Test
+	void changeStatusWithAnUnknownStatusGives400NamingTheField() {
+		assertThat(mvc.patch().uri("/api/applications/5/status").contentType(MediaType.APPLICATION_JSON).content("""
+				{"status": "SENT"}
+				""")).hasStatus(HttpStatus.BAD_REQUEST)
+			.bodyJson()
+			.isLenientlyEqualTo("""
+					{"errors": [{"field": "status", "message": "Valeur invalide."}]}
+					""");
+		verifyNoInteractions(service);
+	}
+
+	@Test
+	void changeStatusWithoutSentDateGives400NamingSentOn() {
+		when(service.changeStatus(eq(5L), any()))
+			.thenThrow(new FieldRuleViolationException("sentOn", "La date d'envoi est obligatoire pour ce statut."));
+
+		assertThat(mvc.patch().uri("/api/applications/5/status").contentType(MediaType.APPLICATION_JSON).content("""
+				{"status": "PENDING"}
+				""")).hasStatus(HttpStatus.BAD_REQUEST)
+			.bodyJson()
+			.isLenientlyEqualTo("""
+					{"errors": [{"field": "sentOn", "message": "La date d'envoi est obligatoire pour ce statut."}]}
+					""");
+	}
+
+	@Test
+	void changeStatusOfAnUnknownApplicationGives404ProblemDetail() {
+		when(service.changeStatus(eq(42L), any()))
+			.thenThrow(new ResourceNotFoundException("Candidature 42 introuvable."));
+
+		assertThat(mvc.patch().uri("/api/applications/42/status").contentType(MediaType.APPLICATION_JSON).content("""
+				{"status": "TO_SEND"}
+				""")).hasStatus(HttpStatus.NOT_FOUND)
 			.hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
 			.bodyJson()
 			.isLenientlyEqualTo("""

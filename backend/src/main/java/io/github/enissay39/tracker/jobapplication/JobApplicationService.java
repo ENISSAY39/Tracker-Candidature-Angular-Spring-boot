@@ -10,6 +10,7 @@ import io.github.enissay39.tracker.companygroup.CompanyGroup;
 import io.github.enissay39.tracker.companygroup.CompanyGroupService;
 import io.github.enissay39.tracker.jobapplication.dto.JobApplicationRequest;
 import io.github.enissay39.tracker.jobapplication.dto.JobApplicationResponse;
+import io.github.enissay39.tracker.jobapplication.dto.StatusChangeRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +58,26 @@ public class JobApplicationService {
 		application.setStatus(request.status());
 		copyDetails(request, application);
 		// Écriture immédiate : la réponse porte la date de modification posée par l'entité
+		repository.saveAndFlush(application);
+		return JobApplicationMapper.toResponse(application);
+	}
+
+	/**
+	 * Change le statut. Une date absente de la requête garde sa valeur actuelle ; aucune date n'est jamais déduite
+	 * de l'horloge du serveur.
+	 */
+	@Transactional
+	public JobApplicationResponse changeStatus(Long id, StatusChangeRequest request) {
+		JobApplication application = findExisting(id);
+		ApplicationStatus status = request.status();
+		LocalDate sentOn = (request.sentOn() != null) ? request.sentOn() : application.getSentOn();
+		requireSentOnIfNeeded(status, sentOn);
+		LocalDate deadlineDate = (request.deadlineDate() != null) ? request.deadlineDate()
+				: application.getDeadlineDate();
+		application.setStatus(status);
+		application.setSentOn(sentOn);
+		// Statut clos : plus d'échéance ; une réouverture ne restaure rien
+		application.setDeadlineDate(status.isClosed() ? null : deadlineDate);
 		repository.saveAndFlush(application);
 		return JobApplicationMapper.toResponse(application);
 	}

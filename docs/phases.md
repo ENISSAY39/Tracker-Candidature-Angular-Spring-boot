@@ -48,7 +48,7 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 - [x] Candidatures : DTO `…Request` / `…Response`, mapper manuel, service, contrôleur ; `GET`, `POST`, `PUT`, `DELETE`
 - [x] Création du groupe à la volée à partir de `groupName` : nom nettoyé, recherche sans tenir compte de la casse, graphie existante conservée
 - [x] Attribution du `number` par le service à partir de la séquence (immuable, jamais réutilisé, trous possibles) ; aucun `number` dans les `…Request`
-- [ ] `PATCH /api/applications/{id}/status` avec `{status, sentOn?, deadlineDate?}` ; 400 si la date d'envoi manque, jamais d'horloge serveur
+- [x] `PATCH /api/applications/{id}/status` avec `{status, sentOn?, deadlineDate?}` ; 400 si la date d'envoi manque, jamais d'horloge serveur
 - [x] Règles métier : `sent_on` obligatoire sauf `TO_SEND` / `WITHDRAWN`, `deadline_date` remise à `null` sur les statuts clos, champs texte facultatifs vides enregistrés à `null`
 - [ ] Groupes : `GET`, `PUT` (renommer ; 409 si le nom est déjà pris, pas de fusion), `DELETE` (409 si le groupe a des candidatures)
 - [ ] Tests : services en unitaire (Mockito), contrôleurs en `@WebMvcTest`
