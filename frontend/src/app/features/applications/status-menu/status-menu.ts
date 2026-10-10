@@ -1,4 +1,5 @@
 import { Component, computed, inject, input, output } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { MatMenuModule } from '@angular/material/menu';
 import { groupByCategory, Status } from '../../../shared/status';
 import { StatusBadge } from '../../../shared/status-badge/status-badge';
@@ -7,7 +8,7 @@ import { StatusChanger } from '../status-changer';
 
 /** Badge de statut qui ouvre le menu des statuts groupés par catégorie, pour en changer en deux clics. */
 @Component({
-  imports: [MatMenuModule, StatusBadge],
+  imports: [MatMenuModule, NgTemplateOutlet, StatusBadge],
   selector: 'app-status-menu',
   template: `
     @if (current(); as status) {
@@ -22,21 +23,34 @@ import { StatusChanger } from '../status-changer';
     }
     <mat-menu #menu="matMenu">
       @for (group of groups(); track group.category.code) {
-        <!-- En-tête seulement si la catégorie regroupe plusieurs statuts (sinon il répéterait le libellé) -->
+        <!-- Groupe nommé seulement si la catégorie regroupe plusieurs statuts (sinon il répéterait le libellé) -->
         @if (group.statuses.length > 1) {
-          <div class="status-menu-category" role="presentation">{{ group.category.label }}</div>
-        }
-        @for (status of group.statuses; track status.code) {
-          <button
-            mat-menu-item
-            type="button"
-            [disabled]="status.code === application().status"
-            (click)="choose(status)"
-          >
-            {{ status.label }}
-          </button>
+          <div role="group" [attr.aria-label]="group.category.label">
+            <div class="status-menu-category" aria-hidden="true">{{ group.category.label }}</div>
+            @for (status of group.statuses; track status.code) {
+              <ng-container
+                [ngTemplateOutlet]="item"
+                [ngTemplateOutletContext]="{ $implicit: status }"
+              />
+            }
+          </div>
+        } @else {
+          <ng-container
+            [ngTemplateOutlet]="item"
+            [ngTemplateOutletContext]="{ $implicit: group.statuses[0] }"
+          />
         }
       }
+      <ng-template #item let-status>
+        <button
+          mat-menu-item
+          type="button"
+          [disabled]="status.code === application().status"
+          (click)="choose(status)"
+        >
+          {{ status.label }}
+        </button>
+      </ng-template>
     </mat-menu>
   `,
   styles: `

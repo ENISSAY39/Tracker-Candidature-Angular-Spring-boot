@@ -59,7 +59,7 @@ export class ApplicationDetail {
   });
 
   /** Candidature renvoyée par le serveur après un changement de statut. */
-  protected replace(updated: JobApplication): void {
+  protected applyStatusChange(updated: JobApplication): void {
     this.data.update((loaded) => loaded && { ...loaded, application: updated });
   }
 

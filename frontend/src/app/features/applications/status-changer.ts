@@ -24,7 +24,7 @@ export class StatusChanger {
 
   change(application: JobApplication, status: Status): Observable<JobApplication> {
     const request$: Observable<StatusChangeRequest> = needsSentOnDialog(application, status)
-      ? this.askSentOn(status)
+      ? this.askSentOn(application, status)
       : of({ status: status.code });
     return request$.pipe(
       switchMap((request) => this.api.changeStatus(application.id, request)),
@@ -36,9 +36,12 @@ export class StatusChanger {
     );
   }
 
-  private askSentOn(status: Status): Observable<StatusChangeRequest> {
+  // Une échéance effacée part absente du PATCH : le serveur garde alors l'échéance existante
+  private askSentOn(application: JobApplication, status: Status): Observable<StatusChangeRequest> {
     return this.dialog
-      .open<SentOnDialog, SentOnDialogData, SentOnDialogResult>(SentOnDialog, { data: { status } })
+      .open<SentOnDialog, SentOnDialogData, SentOnDialogResult>(SentOnDialog, {
+        data: { status, deadlineDate: application.deadlineDate },
+      })
       .afterClosed()
       .pipe(
         filter((result): result is SentOnDialogResult => result !== undefined),

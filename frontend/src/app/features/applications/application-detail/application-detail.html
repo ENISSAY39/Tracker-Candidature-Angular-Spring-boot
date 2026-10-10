@@ -18,7 +18,7 @@
     <app-status-menu
       [application]="application"
       [statuses]="data.value().statuses"
-      (changed)="replace($event)"
+      (changed)="applyStatusChange($event)"
     />
   </header>
 

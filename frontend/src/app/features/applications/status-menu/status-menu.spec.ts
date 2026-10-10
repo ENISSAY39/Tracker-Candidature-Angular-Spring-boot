@@ -161,6 +161,18 @@ describe('StatusMenu', () => {
     await vi.waitFor(() => expect(changed.length).toBe(1));
   });
 
+  it('keeps the deadline the application already has instead of proposing one', async () => {
+    await render({ ...application(null, 'TO_SEND'), deadlineDate: '2026-11-30' });
+
+    await choose('En attente');
+    const dialog = await overlay.getHarness(MatDialogHarness);
+    const deadline = await dialog.getHarness(
+      MatDatepickerInputHarness.with({ selector: '[aria-label="Date échéance"]' }),
+    );
+    expect(await deadline.getValue()).toBe('30/11/2026');
+    await (await dialog.getHarness(MatButtonHarness.with({ text: 'Annuler' }))).click();
+  });
+
   it('proposes no deadline for a closed status', async () => {
     await render(application(null, 'TO_SEND'));
 

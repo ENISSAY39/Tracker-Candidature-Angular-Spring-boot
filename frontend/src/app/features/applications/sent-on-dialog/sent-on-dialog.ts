@@ -12,6 +12,8 @@ import { FOLLOW_UP_DAYS, proposeDeadline } from '../deadline-proposal';
 export interface SentOnDialogData {
   /** Nouveau statut, qui exige une date d'envoi. */
   status: Status;
+  /** Échéance actuelle de la candidature (`yyyy-MM-dd`), gardée plutôt que remplacée par la proposition. */
+  deadlineDate: string | null;
 }
 
 /** Dates choisies, au format `yyyy-MM-dd`. */
@@ -21,8 +23,8 @@ export interface SentOnDialogResult {
 }
 
 /**
- * Demande la date d'envoi qui manque pour le nouveau statut : aujourd'hui par défaut, avec l'échéance proposée à
- * + 14 jours (sauf statut clos), modifiable et effaçable.
+ * Demande la date d'envoi qui manque pour le nouveau statut : aujourd'hui par défaut, avec l'échéance actuelle ou, si
+ * elle est vide, proposée à + 14 jours (sauf statut clos), modifiable et effaçable.
  */
 @Component({
   imports: [
@@ -121,7 +123,7 @@ export class SentOnDialog {
 
   private initialDates(): { sentOn: Date | null; deadlineDate: Date | null } {
     const sentOn = today();
-    const deadline = proposeDeadline(sentOn, null, this.data.status.closed);
+    const deadline = proposeDeadline(sentOn, this.data.deadlineDate, this.data.status.closed);
     return { sentOn: fromDay(sentOn), deadlineDate: deadline ? fromDay(deadline) : null };
   }
 }

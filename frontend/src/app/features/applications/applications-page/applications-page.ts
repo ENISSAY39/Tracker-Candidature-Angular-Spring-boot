@@ -37,7 +37,7 @@ import { ApplicationsList } from '../applications-list/applications-list';
         <app-applications-list
           [applications]="loaded.applications"
           [statuses]="loaded.statuses"
-          (statusChanged)="replace($event)"
+          (statusChanged)="applyStatusChange($event)"
         />
       }
     }
@@ -51,7 +51,7 @@ export class ApplicationsPage {
   });
 
   /** Remplace la candidature par la réponse du serveur : tri, compteurs et alertes se recalculent. */
-  protected replace(updated: JobApplication): void {
+  protected applyStatusChange(updated: JobApplication): void {
     this.data.update(
       (loaded) =>
         loaded && {
