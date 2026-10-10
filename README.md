@@ -100,7 +100,8 @@ Limites acceptées :
 
 - avec le dossier par défaut, les sauvegardes sont sur le même disque que la base ; pointez `BACKUP_DIR` vers un autre disque ou un dossier synchronisé pour vous protéger d'une panne ;
 - les fichiers `.sql` contiennent les données personnelles en clair, sans chiffrement ;
-- jusqu'à une journée de saisie peut être perdue en cas d'incident.
+- jusqu'à une journée de saisie peut être perdue en cas d'incident ;
+- une sauvegarde se restaure sur la version de l'appli qui l'a produite : rejouée après une migration du schéma, elle laisse en place les tables ajoutées depuis, et Flyway refuse alors de démarrer.
 
 ## Développement local
 

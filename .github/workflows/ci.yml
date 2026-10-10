@@ -63,7 +63,7 @@ jobs:
           echo restaurer | scripts/restore.sh "$backup"
           test "$(sql 'SELECT name FROM company_group')" = "Groupe fictif"
           # Un fichier invalide est refusé et laisse la base intacte
-          echo 'DROP TABLE company_group; CECI NEST PAS DU SQL;' > invalid.sql
+          echo 'DELETE FROM company_group; CECI NEST PAS DU SQL;' > invalid.sql
           if echo restaurer | scripts/restore.sh invalid.sql; then exit 1; fi
           test "$(sql 'SELECT name FROM company_group')" = "Groupe fictif"
           docker compose exec -T backup backup-now --check

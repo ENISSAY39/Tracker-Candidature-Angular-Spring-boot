@@ -11,7 +11,8 @@ export LC_ALL=C
 readonly DIR=/backups
 readonly KEEP=${BACKUP_KEEP:-90}
 # tracker-AAAA-MM-JJ_HHMM.sql, ou …_HHMMSS.sql quand la minute est déjà prise : l'ordre des noms reste chronologique
-readonly PATTERN='tracker-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9][0-9][0-9]*.sql'
+readonly MINUTE_PATTERN='tracker-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9][0-9][0-9].sql'
+readonly SECOND_PATTERN='tracker-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9][0-9][0-9][0-9][0-9].sql'
 readonly FAILURE_MARKER=$DIR/.last-backup-failed
 partial=
 
@@ -21,15 +22,17 @@ log() {
 
 # Vrai s'il existe une sauvegarde de moins de $1 minutes
 has_backup_newer_than() {
-  [ -n "$(find "$DIR" -maxdepth 1 -type f -name "$PATTERN" -mmin "-$1" -print -quit)" ]
+  [ -n "$(find "$DIR" -maxdepth 1 -type f \( -name "$MINUTE_PATTERN" -o -name "$SECOND_PATTERN" \) -mmin "-$1" -print -quit)" ]
 }
 
 # Supprime les sauvegardes les plus anciennes au-delà de KEEP
 prune() {
   local files excess
   shopt -s nullglob
-  files=("$DIR"/$PATTERN)
+  files=("$DIR"/$MINUTE_PATTERN "$DIR"/$SECOND_PATTERN)
   shopt -u nullglob
+  # Les deux motifs mêlés : remis dans l'ordre des noms, donc chronologique
+  mapfile -t files < <(printf '%s\n' "${files[@]}" | sort)
   excess=$((${#files[@]} - KEEP))
   if ((excess > 0)); then
     rm -f -- "${files[@]:0:excess}"
@@ -45,6 +48,8 @@ backup() {
     log "BACKUP_KEEP doit être un entier strictement positif (reçu : « $KEEP »)." >&2
     exit 1
   fi
+  # Restes d'une sauvegarde interrompue brutalement (arrêt du poste pendant le dump)
+  find "$DIR" -maxdepth 1 -type f -name '.tracker-*.partial' -mmin +60 -delete
   target=$DIR/tracker-$(date +%Y-%m-%d_%H%M).sql
   # Minute déjà prise : nom à la seconde, pour ne rien écraser et rester la plus récente dans l'ordre des noms
   if compgen -G "${target%.sql}*.sql" >/dev/null; then
@@ -60,6 +65,8 @@ backup() {
   mv -- "$partial" "$target"
   rm -f -- "$FAILURE_MARKER"
   log "Sauvegarde créée : $(basename "$target")"
+  # La sauvegarde est faite : une rétention qui échoue ne la fait pas passer pour un échec
+  trap - EXIT
   prune
 }
 
@@ -75,7 +82,8 @@ loop() {
   # Arrêt immédiat sur « docker compose stop », sans attendre la fin du sommeil
   trap 'exit 0' TERM INT
   while true; do
-    if ! has_backup_newer_than $((24 * 60)); then
+    # Après un échec, nouvelle tentative à chaque passage, sans attendre les 24 h
+    if [ -e "$FAILURE_MARKER" ] || ! has_backup_newer_than $((24 * 60)); then
       "$0" || true
     fi
     sleep 3600 &
