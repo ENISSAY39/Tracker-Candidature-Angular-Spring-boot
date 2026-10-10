@@ -82,11 +82,15 @@ La base est la seule source de vérité : le classeur n'est qu'une photo du jour
 - **Rétention** : les `BACKUP_KEEP` fichiers les plus récents sont gardés (90 par défaut) ; les plus anciens sont supprimés après une sauvegarde réussie.
 - **Surveillance** : `docker compose ps` affiche `backup` en `unhealthy` si la sauvegarde la plus récente a plus de 48 h ou si la dernière tentative a échoué ; le détail est dans `docker compose logs backup`.
 
-Sauvegarde à la demande, à lancer **avant un import en mode remplacement** ou toute opération risquée :
+Redémarrer l'appli ne force pas une sauvegarde : tant que la plus récente a moins de 24 h, `docker compose up -d` ou un redémarrage du poste ne crée aucun fichier. Ce qui est saisi entre-temps n'est donc sauvegardé que le lendemain.
+
+Pour **forcer une sauvegarde tout de suite**, quel que soit l'âge de la dernière :
 
 ```bash
 docker compose exec backup backup-now
 ```
+
+À lancer après une saisie importante, et toujours **avant un import en mode remplacement** ou toute opération risquée. Le fichier créé compte dans la rétention comme les autres.
 
 Restauration (Git Bash, depuis la racine du dépôt) : elle **remplace** tout le contenu de la base par celui du fichier.
 
