@@ -32,4 +32,25 @@ describe('GroupsApi', () => {
 
     expect(await result).toEqual(groups);
   });
+
+  it('renames a group with PUT /api/groups/{id}', async () => {
+    const result = firstValueFrom(api.rename(1, 'Groupe Renommé'));
+
+    const request = backend.expectOne('/api/groups/1');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({ name: 'Groupe Renommé' });
+    request.flush({ id: 1, name: 'Groupe Renommé' });
+
+    expect(await result).toEqual({ id: 1, name: 'Groupe Renommé' });
+  });
+
+  it('deletes a group with DELETE /api/groups/{id}', async () => {
+    const result = firstValueFrom(api.delete(1));
+
+    const request = backend.expectOne('/api/groups/1');
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null, { status: 204, statusText: 'No Content' });
+
+    expect(await result).toBeNull();
+  });
 });
