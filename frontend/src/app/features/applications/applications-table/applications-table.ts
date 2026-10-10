@@ -4,7 +4,8 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { StatusBadge } from '../../../shared/status-badge/status-badge';
-import { isClosed, JobApplication, Status } from '../application';
+import { isClosed, Status } from '../../../shared/status';
+import { JobApplication } from '../application';
 import { sortApplications } from '../application-sort';
 
 /**
@@ -20,7 +21,7 @@ export class ApplicationsTable {
   readonly applications = input.required<JobApplication[]>();
   readonly statuses = input.required<Status[]>();
 
-  protected readonly columns = [
+  protected readonly columns: readonly (keyof JobApplication)[] = [
     'number',
     'groupName',
     'company',

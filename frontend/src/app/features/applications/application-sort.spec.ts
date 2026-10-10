@@ -1,4 +1,5 @@
-import { JobApplication, Status, StatusCategoryCode } from './application';
+import { Status, StatusCategoryCode } from '../../shared/status';
+import { JobApplication } from './application';
 import { sortApplications } from './application-sort';
 
 function status(code: string, order: number, category: StatusCategoryCode, rank: number): Status {

@@ -3,7 +3,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { ApplicationsApi } from './applications-api';
-import { JobApplication, Status } from './application';
+import { Status } from '../../shared/status';
+import { JobApplication } from './application';
 
 describe('ApplicationsApi', () => {
   let api: ApplicationsApi;

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Status } from '../../features/applications/application';
+import { Status } from '../status';
 import { StatusBadge } from './status-badge';
 
 describe('StatusBadge', () => {

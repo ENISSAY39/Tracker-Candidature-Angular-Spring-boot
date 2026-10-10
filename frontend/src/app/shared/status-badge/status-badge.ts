@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { Status, StatusCategoryCode } from '../../features/applications/application';
+import { Status, StatusCategoryCode } from '../status';
 
 interface BadgeColors {
   background: string;

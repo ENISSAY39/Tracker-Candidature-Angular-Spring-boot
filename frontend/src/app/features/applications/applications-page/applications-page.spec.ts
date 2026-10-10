@@ -1,7 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { JobApplication, Status } from '../application';
+import { Status } from '../../../shared/status';
+import { JobApplication } from '../application';
 import { ApplicationsPage } from './applications-page';
 
 const STATUSES: Status[] = [

@@ -1,6 +1,7 @@
 import { Sort } from '@angular/material/sort';
 import { compareDates } from '../../shared/dates';
-import { JobApplication, Status } from './application';
+import { Status } from '../../shared/status';
+import { JobApplication } from './application';
 
 type SortableColumn = keyof JobApplication;
 

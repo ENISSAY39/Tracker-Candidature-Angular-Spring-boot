@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
 import { Observable, shareReplay } from 'rxjs';
-import { JobApplication, Status } from './application';
+import { Status } from '../../shared/status';
+import { JobApplication } from './application';
 
 @Service()
 export class ApplicationsApi {

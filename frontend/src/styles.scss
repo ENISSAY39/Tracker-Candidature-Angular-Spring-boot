@@ -37,3 +37,8 @@ body {
   height: 100%;
 }
 /* You can add global styles to this file, and also import other style files */
+
+// Info-bulle des notes : le journal de suivi garde ses retours à la ligne
+.notes-tooltip {
+  white-space: pre-line;
+}
