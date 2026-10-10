@@ -197,7 +197,7 @@ describe('ApplicationForm', () => {
       {
         status: 400,
         detail: 'Un ou plusieurs champs sont invalides.',
-        errors: [{ field: 'company', message: 'la taille doit être comprise entre 0 et 255' }],
+        errors: [{ field: 'company', message: 'ne doit pas être vide' }],
       },
       { status: 400, statusText: 'Bad Request' },
     );
@@ -205,7 +205,7 @@ describe('ApplicationForm', () => {
     await vi.waitFor(async () => {
       await harness.fixture.whenStable();
       const company = page.querySelector('[aria-label="Entreprise"]')?.closest('mat-form-field');
-      expect(company?.textContent).toContain('la taille doit être comprise entre 0 et 255');
+      expect(company?.textContent).toContain('ne doit pas être vide');
     });
     expect(TestBed.inject(Router).url).toBe('/applications/new');
   });

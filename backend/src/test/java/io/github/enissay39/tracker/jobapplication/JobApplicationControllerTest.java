@@ -101,18 +101,14 @@ class JobApplicationControllerTest {
 	}
 
 	@Test
-	void createWithTooLongTextsGives400ListingThem() {
+	void createWithATooLongGroupNameGives400NamingTheField() {
 		String tooLongGroup = "G".repeat(101);
-		String tooLongTitle = "T".repeat(256);
 
 		assertThat(mvc.post().uri("/api/applications").contentType(MediaType.APPLICATION_JSON).content("""
-				{"groupName": "%s", "company": "Fictif Aéro", "jobTitle": "%s", "status": "TO_SEND"}
-				""".formatted(tooLongGroup, tooLongTitle))).hasStatus(HttpStatus.BAD_REQUEST)
-			.bodyJson()
-			.isLenientlyEqualTo("""
-					{"errors": [{"field": "groupName", "message": "la taille doit être comprise entre 0 et 100"},
-					            {"field": "jobTitle", "message": "la taille doit être comprise entre 0 et 255"}]}
-					""");
+				{"groupName": "%s", "company": "Fictif Aéro", "jobTitle": "Stagiaire", "status": "TO_SEND"}
+				""".formatted(tooLongGroup))).hasStatus(HttpStatus.BAD_REQUEST).bodyJson().isLenientlyEqualTo("""
+				{"errors": [{"field": "groupName", "message": "la taille doit être comprise entre 0 et 100"}]}
+				""");
 		verifyNoInteractions(service);
 	}
 

@@ -53,6 +53,20 @@ class ExcelImportServiceTest {
 	}
 
 	@Test
+	void importsFreeTextsWithoutLengthLimit() {
+		String longText = "Texte fictif. ".repeat(100).strip();
+		TestWorkbook workbook = new TestWorkbook().applications(application(1, "Groupe Fictif", longText, longText,
+				"À envoyer", null, longText, null, longText, longText, longText, longText));
+
+		service.importWorkbook(workbook.toInputStream(), ImportMode.INITIAL);
+
+		JobApplication imported = byNumber(1);
+		assertThat(List.of(imported.getCompany(), imported.getJobTitle(), imported.getDeadlineLabel(),
+				imported.getNotes(), imported.getStartPeriod(), imported.getChannel(), imported.getCvSent()))
+			.containsOnly(longText);
+	}
+
+	@Test
 	void importsEveryApplicationWithItsNumberAndCountsTheCreatedRows() {
 		TestWorkbook workbook = new TestWorkbook().applications(
 				application(26, "Groupe Fictif", "Fictif Aéro - Bureau d'études, Ville-Test",

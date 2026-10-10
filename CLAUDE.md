@@ -82,6 +82,7 @@ tracker-candidatures/
 - Les feuilles par employeur → **aucune table** : ce sont des vues filtrées par groupe. Dans l'appli, chaque groupe a sa page. La feuille « Autres » n'est pas un groupe : c'est un regroupement de présentation du classeur, sans équivalent dans l'appli (chaque employeur isolé est un groupe à part entière).
 - Feuilles « À évaluer » et « Abandonnées » → table `job_lead` (`state` = `TO_EVALUATE` / `DISCARDED`). Dans l'appli, un `JobLead` s'appelle une **piste**, à évaluer ou écartée (vocabulaire : `GLOSSARY.md`).
 - Ligne 2 de chaque feuille (compteurs) → calculée, jamais stockée.
+- Champs en texte libre : colonnes `text`, sans longueur maximale (le classeur réel dépasse largement 255 caractères) ; seul le nom d'un groupe est limité (100 caractères).
 
 ### `job_application` — entité `JobApplication`
 
@@ -89,25 +90,25 @@ tracker-candidatures/
 |---|---|---|---|
 | # | `number` | `integer` unique, non nul | Numéro métier donné par la séquence `job_application_number_seq` ; immuable, jamais réutilisé (les notes citent « n° 26 ») ; attribué par le service, trous possibles |
 | Groupe | `company_group_id` | FK non nulle | Maison mère ; créée à la volée à partir de son nom |
-| Entreprise | `company` | `varchar(255)` non nul | Texte libre : entité + service + site |
-| Poste | `job_title` | `varchar(255)` non nul | Texte libre : intitulé + référence de l'annonce |
+| Entreprise | `company` | `text` non nul | Texte libre : entité + service + site |
+| Poste | `job_title` | `text` non nul | Texte libre : intitulé + référence de l'annonce |
 | Statut | `status` | `varchar(30)` non nul + `CHECK` | Enum `ApplicationStatus` stocké en texte |
 | Envoyée le | `sent_on` | `date` | Obligatoire sauf statuts `TO_SEND` et `WITHDRAWN` ; contrôlé par le service, sans `CHECK` (ADR 0001) |
-| Échéance | `deadline_label` | `varchar(255)` | Prochaine étape en clair (« Relance le 18/10 », « Refus si rien au 21/10 ») |
+| Échéance | `deadline_label` | `text` | Prochaine étape en clair (« Relance le 18/10 », « Refus si rien au 21/10 ») |
 | Date échéance | `deadline_date` | `date` | Saisie à part, jamais déduite du libellé ; pilote les alertes ; nulle sur un statut clos (`CHECK`) |
 | Prochaine action | `notes` | `text` | Journal de suivi daté, écarts, points de vigilance, actions à mener |
-| Début | `start_period` | `varchar(100)` | Texte libre : début + durée (« Févr. 2027, 6 mois ») |
-| Canal | `channel` | `varchar(255)` | Texte libre (site carrière, JobTeaser, cooptation…) ; autocomplétion sur les valeurs existantes |
-| CV envoyé | `cv_sent` | `varchar(255)` | Noms des fichiers CV / lettre envoyés |
+| Début | `start_period` | `text` | Texte libre : début + durée (« Févr. 2027, 6 mois ») |
+| Canal | `channel` | `text` | Texte libre (site carrière, JobTeaser, cooptation…) ; autocomplétion sur les valeurs existantes |
+| CV envoyé | `cv_sent` | `text` | Noms des fichiers CV / lettre envoyés |
 | — | `id`, `created_at`, `updated_at` | `bigint` identité, `timestamptz` | Techniques |
 
 ### `job_lead` — entité `JobLead`
 
 | Colonne Excel | Colonne SQL | Type | Règle |
 |---|---|---|---|
-| Entreprise | `company` | `varchar(255)` non nul | |
-| Poste | `job_title` | `varchar(255)` non nul | |
-| CV prévu (À évaluer) | `planned_cv` | `varchar(255)` | |
+| Entreprise | `company` | `text` non nul | |
+| Poste | `job_title` | `text` non nul | |
+| CV prévu (À évaluer) | `planned_cv` | `text` | |
 | Remarque (À évaluer) | `remark` | `text` | |
 | Motif (Abandonnées) | `discard_reason` | `text` | Renseigné et non vide si et seulement si `DISCARDED` (`CHECK`) |
 | (nom de la feuille) | `state` | `varchar(20)` non nul + `CHECK` | Enum `LeadState` : `TO_EVALUATE` / `DISCARDED` |

@@ -12,8 +12,7 @@ import jakarta.validation.constraints.Size;
  * son nom et il est créé s'il n'existe pas.
  */
 public record JobApplicationRequest(@NotBlank @Size(max = 100) String groupName,
-		@NotBlank @Size(max = 255) String company, @NotBlank @Size(max = 255) String jobTitle,
-		@NotNull ApplicationStatus status, LocalDate sentOn, @Size(max = 255) String deadlineLabel,
-		LocalDate deadlineDate, String notes, @Size(max = 100) String startPeriod, @Size(max = 255) String channel,
-		@Size(max = 255) String cvSent) {
+		@NotBlank String company, @NotBlank String jobTitle, @NotNull ApplicationStatus status, LocalDate sentOn,
+		String deadlineLabel, LocalDate deadlineDate, String notes, String startPeriod, String channel,
+		String cvSent) {
 }

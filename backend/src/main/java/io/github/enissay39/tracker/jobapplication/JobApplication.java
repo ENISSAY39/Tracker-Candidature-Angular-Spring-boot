@@ -37,10 +37,10 @@ public class JobApplication {
 	@JoinColumn(name = "company_group_id", nullable = false)
 	private CompanyGroup companyGroup;
 
-	@Column(nullable = false)
+	@Column(nullable = false, columnDefinition = "text")
 	private String company;
 
-	@Column(name = "job_title", nullable = false)
+	@Column(name = "job_title", nullable = false, columnDefinition = "text")
 	private String jobTitle;
 
 	@Enumerated(EnumType.STRING)
@@ -50,7 +50,7 @@ public class JobApplication {
 	@Column(name = "sent_on")
 	private LocalDate sentOn;
 
-	@Column(name = "deadline_label")
+	@Column(name = "deadline_label", columnDefinition = "text")
 	private String deadlineLabel;
 
 	@Column(name = "deadline_date")
@@ -59,12 +59,13 @@ public class JobApplication {
 	@Column(columnDefinition = "text")
 	private String notes;
 
-	@Column(name = "start_period", length = 100)
+	@Column(name = "start_period", columnDefinition = "text")
 	private String startPeriod;
 
+	@Column(columnDefinition = "text")
 	private String channel;
 
-	@Column(name = "cv_sent")
+	@Column(name = "cv_sent", columnDefinition = "text")
 	private String cvSent;
 
 	@Column(name = "created_at", nullable = false, updatable = false)
