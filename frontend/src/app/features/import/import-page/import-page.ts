@@ -188,7 +188,8 @@ export class ImportPage {
           title: 'Remplacer les données',
           message:
             'Toutes les candidatures, pistes et groupes actuels seront supprimés puis remplacés par ceux du ' +
-            'classeur. Rien n’est effacé si le classeur est refusé.',
+            'classeur. Rien n’est effacé si le classeur est refusé. Lancez d’abord une sauvegarde : ' +
+            'docker compose exec backup backup-now',
           confirmLabel: 'Remplacer',
         })
       : of(true);

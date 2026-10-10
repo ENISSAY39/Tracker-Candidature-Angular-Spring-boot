@@ -163,6 +163,9 @@ describe('ImportPage', () => {
     await (await importButton()).click();
     const dialog = await dialogs.getHarness(MatDialogHarness);
     expect(await dialog.getContentText()).toContain('candidatures, pistes et groupes');
+    expect(await dialog.getContentText()).toContain(
+      'Lancez d’abord une sauvegarde : docker compose exec backup backup-now',
+    );
     await (await dialog.getHarness(MatButtonHarness.with({ text: 'Annuler' }))).click();
     await fixture.whenStable();
     backend.expectNone((req) => req.url === '/api/import/excel');
