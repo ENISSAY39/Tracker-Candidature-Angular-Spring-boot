@@ -1,5 +1,14 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import {
+  afterNextRender,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  Injector,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
@@ -17,6 +26,7 @@ type Outcome =
   | { kind: 'conflict' };
 
 const FAILURE_MESSAGE = 'L’import a échoué.';
+const TOO_LARGE_MESSAGE = 'Le fichier dépasse la taille maximale autorisée (10 Mo).';
 
 /**
  * Envoi du classeur : choix du fichier, remplacement éventuel des données (confirmé), puis nombre de lignes créées,
@@ -45,6 +55,10 @@ const FAILURE_MESSAGE = 'L’import a échoué.';
       width: 100%;
     }
 
+    .outcome:focus {
+      outline: none;
+    }
+
     .rejected {
       color: var(--mat-sys-error);
     }
@@ -57,14 +71,7 @@ const FAILURE_MESSAGE = 'L’import a échoué.';
     </p>
 
     <div class="file">
-      <input
-        #fileInput
-        type="file"
-        accept=".xlsx"
-        hidden
-        aria-label="Classeur Excel"
-        (change)="onFileChange($event)"
-      />
+      <input #fileInput type="file" accept=".xlsx" hidden (change)="onFileChange($event)" />
       <button mat-stroked-button type="button" [disabled]="sending()" (click)="fileInput.click()">
         Choisir le classeur
       </button>
@@ -92,10 +99,10 @@ const FAILURE_MESSAGE = 'L’import a échoué.';
       <mat-progress-bar mode="indeterminate" aria-label="Import en cours" />
     }
 
-    @switch (outcome()?.kind) {
-      @case ('imported') {
-        @let result = imported()!;
-        <div class="result" role="status">
+    <!-- Région annoncée en permanence : le résultat qui s'y affiche est lu, et reçoit le focus -->
+    <div #outcomeRegion class="outcome" tabindex="-1" aria-live="polite">
+      @if (imported(); as result) {
+        <div class="result">
           <p>
             Import terminé : {{ count(result.companyGroups, 'groupe', 'groupes') }},
             {{ count(result.jobApplications, 'candidature', 'candidatures') }} et
@@ -103,27 +110,30 @@ const FAILURE_MESSAGE = 'L’import a échoué.';
           </p>
           <a mat-button routerLink="/applications">Voir les candidatures</a>
         </div>
-      }
-      @case ('rejected') {
-        <p class="rejected" role="alert">{{ rejection() }}</p>
-      }
-      @case ('conflict') {
-        <div role="alert">
-          <p>
-            La base contient déjà des candidatures : l’import est refusé pour ne rien écraser par
-            mégarde. Pour recharger le classeur, remplacez les données existantes.
-          </p>
-        </div>
-        <button mat-stroked-button type="button" (click)="replaceAfterConflict()">
+      } @else if (rejection(); as message) {
+        <p class="rejected" role="alert">{{ message }}</p>
+      } @else if (outcome()?.kind === 'conflict') {
+        <p role="alert">
+          La base contient déjà des candidatures : l’import est refusé pour ne rien écraser par
+          mégarde. Pour recharger le classeur, remplacez les données existantes.
+        </p>
+        <button
+          mat-stroked-button
+          type="button"
+          [disabled]="sending()"
+          (click)="replaceAfterConflict()"
+        >
           Remplacer les données
         </button>
       }
-    }
+    </div>
   `,
 })
 export class ImportPage {
   private readonly api = inject(ImportApi);
   private readonly dialog = inject(MatDialog);
+  private readonly injector = inject(Injector);
+  private readonly outcomeRegion = viewChild<ElementRef<HTMLElement>>('outcomeRegion');
 
   protected readonly file = signal<File | null>(null);
   protected readonly replace = signal(false);
@@ -136,42 +146,37 @@ export class ImportPage {
     this.outcome.set(null);
   }
 
-  protected send(): void {
+  protected send(replace = this.replace()): void {
     const file = this.file();
     if (file === null) {
       return;
     }
-    const replace = this.replace();
     this.confirmed(replace)
       .pipe(
         filter(Boolean),
-        tap(() => {
-          this.sending.set(true);
-          this.outcome.set(null);
-        }),
+        tap(() => this.sending.set(true)),
         switchMap(() => this.api.importWorkbook(file, replace)),
       )
       .subscribe({
         next: (result) => this.finish({ kind: 'imported', result }),
-        error: (error: unknown) => this.finish(failure(error)),
+        error: (error: unknown) => this.finish(outcomeOf(error)),
       });
   }
 
-  /** Après un refus pour base déjà remplie : la même demande, en remplacement (toujours confirmé). */
+  /** Après un refus pour base déjà remplie : le même envoi, en remplacement, toujours confirmé. */
   protected replaceAfterConflict(): void {
-    this.replace.set(true);
-    this.send();
+    this.send(true);
   }
 
-  protected imported(): ImportResult | undefined {
+  protected readonly imported = computed(() => {
     const outcome = this.outcome();
     return outcome?.kind === 'imported' ? outcome.result : undefined;
-  }
+  });
 
-  protected rejection(): string {
+  protected readonly rejection = computed(() => {
     const outcome = this.outcome();
-    return outcome?.kind === 'rejected' ? outcome.message : '';
-  }
+    return outcome?.kind === 'rejected' ? outcome.message : undefined;
+  });
 
   protected count(value: number, singular: string, plural: string): string {
     return `${value} ${value > 1 ? plural : singular}`;
@@ -189,16 +194,26 @@ export class ImportPage {
       : of(true);
   }
 
+  /** Le bouton qui avait le focus peut avoir disparu : le focus passe au résultat. */
   private finish(outcome: Outcome): void {
     this.sending.set(false);
     this.outcome.set(outcome);
+    afterNextRender(() => this.outcomeRegion()?.nativeElement.focus(), {
+      injector: this.injector,
+    });
   }
 }
 
-/** 409 : base déjà remplie ; sinon le `detail` du serveur (feuille et ligne pour un rejet), ou un message générique. */
-function failure(error: unknown): Outcome {
+/**
+ * 409 : base déjà remplie. 413 : fichier trop gros, refusé par nginx en conteneurs (réponse sans `ProblemDetail`).
+ * Sinon le `detail` du serveur (feuille et ligne pour un rejet), ou un message générique.
+ */
+function outcomeOf(error: unknown): Outcome {
   if (error instanceof HttpErrorResponse && error.status === 409) {
     return { kind: 'conflict' };
+  }
+  if (error instanceof HttpErrorResponse && error.status === 413) {
+    return { kind: 'rejected', message: TOO_LARGE_MESSAGE };
   }
   const detail: unknown =
     error instanceof HttpErrorResponse

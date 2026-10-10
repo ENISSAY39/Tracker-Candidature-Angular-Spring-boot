@@ -133,6 +133,27 @@ describe('ImportPage', () => {
       fixture.detectChanges();
       expect(page().querySelector('.result')).not.toBeNull();
     });
+    // Le remplacement valait pour cet envoi : la case reste telle que l'utilisateur l'a laissée
+    expect(await (await loader.getHarness(MatCheckboxHarness)).isChecked()).toBe(false);
+    // Le bouton cliqué a disparu : le focus est sur le résultat
+    expect(document.activeElement).toBe(page().querySelector('.outcome'));
+  });
+
+  it('says that the file is too large when nginx refuses it without a problem detail', async () => {
+    await chooseFile();
+
+    await (await importButton()).click();
+    (await sent()).flush('<html>413 Request Entity Too Large</html>', {
+      status: 413,
+      statusText: 'Request Entity Too Large',
+    });
+
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(page().querySelector('[role="alert"]')?.textContent).toContain(
+        'Le fichier dépasse la taille maximale autorisée (10 Mo).',
+      );
+    });
   });
 
   it('asks for confirmation before replacing the existing data', async () => {
