@@ -55,15 +55,15 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 
 ## Phase 4 — Import Excel
 
-- [ ] Lecture de la feuille « Toutes les candidatures » avec Apache POI : ligne d'en-têtes (première cellule = `#`), colonnes lues par leur intitulé, arrêt à la première ligne sans `#`
+- [x] Lecture de la feuille « Toutes les candidatures » avec Apache POI : ligne d'en-têtes (première cellule = `#`), colonnes lues par leur intitulé, arrêt à la première ligne sans `#`
 - [ ] Conversion du statut par libellé exact, rejet de l'import avec le numéro de ligne si le libellé est inconnu
 - [ ] Dates : cellules de type date uniquement
 - [ ] Rejet de l'import avec le numéro de ligne si « Envoyée le » manque alors que le statut l'exige
 - [ ] Lecture des feuilles « À évaluer » et « Abandonnées » vers `job_lead` (en-têtes repérés par `Entreprise`, lignes vides ignorées) ; feuilles par employeur et « Autres » ignorées
-- [ ] Conservation des `number` du classeur, recalage de la séquence sur le maximum
+- [x] Conservation des `number` du classeur, recalage de la séquence sur le maximum
 - [ ] `POST /api/import/excel` : tout ou rien (une transaction), refus si la base contient déjà des candidatures sauf `?mode=replace`
-- [ ] Réponse avec le nombre de lignes créées par table
-- [ ] Tests d'intégration sur Testcontainers avec un classeur fictif généré par POI dans le test (`*.xlsx` est ignoré par Git)
+- [x] Réponse avec le nombre de lignes créées par table
+- [x] Tests d'intégration sur Testcontainers avec un classeur fictif généré par POI dans le test (`*.xlsx` est ignoré par Git)
 - [ ] Recette : les compteurs après import correspondent à la ligne 2 de « Toutes les candidatures »
 
 ## Phase 5 — Écran liste

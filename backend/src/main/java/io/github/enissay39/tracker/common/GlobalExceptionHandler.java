@@ -35,6 +35,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		return problem(HttpStatus.CONFLICT, "Conflit", ex.getMessage());
 	}
 
+	@ExceptionHandler(InvalidRequestException.class)
+	ProblemDetail handleInvalidRequest(InvalidRequestException ex) {
+		return problem(HttpStatus.BAD_REQUEST, "Requête invalide", ex.getMessage());
+	}
+
 	@ExceptionHandler(FieldRuleViolationException.class)
 	ProblemDetail handleFieldRuleViolation(FieldRuleViolationException ex) {
 		return invalidFields(ex.getMessage(), List.of(new InvalidField(ex.getField(), ex.getMessage())));
