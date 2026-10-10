@@ -193,6 +193,13 @@ describe('ApplicationsPage', () => {
     expect(rows()[1].classList.contains('closed')).toBe(true);
   });
 
+  it('links the group of each application to its page', async () => {
+    await respond([application(1, 'PENDING')]);
+
+    const link = rows()[0].querySelector<HTMLAnchorElement>('a[href="/groups/1"]');
+    expect(link?.textContent?.trim()).toBe('Groupe Fictif');
+  });
+
   it('greys out the rows of closed applications', async () => {
     await respond([application(1, 'REJECTED'), application(2, 'PENDING')]);
 

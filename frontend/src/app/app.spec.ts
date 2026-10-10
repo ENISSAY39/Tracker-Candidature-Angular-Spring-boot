@@ -29,6 +29,15 @@ describe('App', () => {
     expect(link?.textContent?.trim()).toBe('Candidatures');
   });
 
+  it('offers the groups in the navigation and opens their list', async () => {
+    const page = await renderAt('/groups');
+
+    const link = page.querySelector<HTMLAnchorElement>('nav a[href="/groups"]');
+    expect(link?.textContent?.trim()).toBe('Groupes');
+    expect(link?.getAttribute('aria-current')).toBe('page');
+    expect(page.querySelector('h1')?.textContent).toContain('Groupes');
+  });
+
   it('marks the navigation entry of the current page as active', async () => {
     const page = await renderAt('/applications');
 
