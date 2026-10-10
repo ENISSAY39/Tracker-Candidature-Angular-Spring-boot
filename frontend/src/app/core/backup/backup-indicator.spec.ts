@@ -30,7 +30,11 @@ describe('BackupIndicator', () => {
   }
 
   it('shows the last backup without alert, as a status for screen readers', () => {
-    respond({ available: true, lastBackupAt: new Date(2026, 9, 9, 14, 32).toISOString() });
+    respond({
+      available: true,
+      lastBackupAt: new Date(2026, 9, 9, 14, 32).toISOString(),
+      lastAttemptFailed: false,
+    });
 
     expect(indicator.textContent?.trim()).toBe('Dernière sauvegarde : hier 14:32');
     expect(indicator.getAttribute('role')).toBe('status');
@@ -38,7 +42,11 @@ describe('BackupIndicator', () => {
   });
 
   it('is in alert when the last backup is too old', () => {
-    respond({ available: true, lastBackupAt: new Date(2026, 9, 7, 23, 17).toISOString() });
+    respond({
+      available: true,
+      lastBackupAt: new Date(2026, 9, 7, 23, 17).toISOString(),
+      lastAttemptFailed: false,
+    });
 
     expect(indicator.textContent?.trim()).toBe(
       'Dernière sauvegarde : 07/10/2026 23:17 (plus de 48 h)',
@@ -46,15 +54,31 @@ describe('BackupIndicator', () => {
     expect(indicator.classList).toContain('alert');
   });
 
+  it('is in alert as soon as the last attempt failed, then back to normal', () => {
+    const lastBackupAt = new Date(2026, 9, 9, 14, 32).toISOString();
+    respond({ available: true, lastBackupAt, lastAttemptFailed: true });
+
+    expect(indicator.textContent?.trim()).toBe(
+      'Dernière sauvegarde : hier 14:32 (dernière tentative en échec)',
+    );
+    expect(indicator.classList).toContain('alert');
+
+    vi.advanceTimersByTime(60 * 60 * 1000);
+    respond({ available: true, lastBackupAt, lastAttemptFailed: false });
+
+    expect(indicator.textContent?.trim()).toBe('Dernière sauvegarde : hier 14:32');
+    expect(indicator.classList).not.toContain('alert');
+  });
+
   it('is in alert without any backup', () => {
-    respond({ available: true, lastBackupAt: null });
+    respond({ available: true, lastBackupAt: null, lastAttemptFailed: false });
 
     expect(indicator.textContent?.trim()).toBe('Aucune sauvegarde');
     expect(indicator.classList).toContain('alert');
   });
 
   it('says the status is unavailable, without alert, when the folder cannot be read', () => {
-    respond({ available: false, lastBackupAt: null });
+    respond({ available: false, lastBackupAt: null, lastAttemptFailed: false });
 
     expect(indicator.textContent?.trim()).toBe('Sauvegarde : état indisponible');
     expect(indicator.classList).not.toContain('alert');
@@ -71,10 +95,18 @@ describe('BackupIndicator', () => {
   });
 
   it('reads the status again every hour', () => {
-    respond({ available: true, lastBackupAt: new Date(2026, 9, 9, 14, 32).toISOString() });
+    respond({
+      available: true,
+      lastBackupAt: new Date(2026, 9, 9, 14, 32).toISOString(),
+      lastAttemptFailed: false,
+    });
 
     vi.advanceTimersByTime(60 * 60 * 1000);
-    respond({ available: true, lastBackupAt: new Date(2026, 9, 10, 16, 30).toISOString() });
+    respond({
+      available: true,
+      lastBackupAt: new Date(2026, 9, 10, 16, 30).toISOString(),
+      lastAttemptFailed: false,
+    });
 
     expect(indicator.textContent?.trim()).toBe('Dernière sauvegarde : aujourd’hui 16:30');
   });

@@ -68,7 +68,7 @@ jobs:
           test "$(sql 'SELECT name FROM company_group')" = "Groupe fictif"
           docker compose exec -T backup backup-now --check
           # Le backend voit le dossier des sauvegardes (monté en lecture seule) et y trouve la plus récente
-          curl --fail --silent --show-error http://localhost:8090/api/backup/status | grep -E '"available":true,"lastBackupAt":"[0-9]'
+          curl --fail --silent --show-error http://localhost:8090/api/backup/status | grep -E '"available":true.*"lastBackupAt":"[0-9]' | grep '"lastAttemptFailed":false'
       - name: Show container logs
         if: failure()
         run: docker compose logs

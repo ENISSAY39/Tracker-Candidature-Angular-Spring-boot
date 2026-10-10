@@ -20,7 +20,11 @@ describe('BackupApi', () => {
   afterEach(() => backend.verify());
 
   it('reads the backup status with GET /api/backup/status', async () => {
-    const status: BackupStatus = { available: true, lastBackupAt: '2026-10-09T12:32:05Z' };
+    const status: BackupStatus = {
+      available: true,
+      lastBackupAt: '2026-10-09T12:32:05Z',
+      lastAttemptFailed: false,
+    };
     const result = firstValueFrom(api.status());
 
     const request = backend.expectOne('/api/backup/status');
