@@ -3,7 +3,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { JobLead } from '../lead';
 
-/** Table des pistes d'un onglet ; le motif n'apparaît que pour les pistes écartées. */
+/**
+ * Table des pistes d'un onglet. Pistes à évaluer : promouvoir et écarter ; pistes écartées : leur motif et
+ * réévaluer. Modifier et supprimer valent pour les deux.
+ */
 @Component({
   imports: [MatButtonModule, MatTableModule],
   selector: 'app-leads-table',
@@ -47,6 +50,33 @@ import { JobLead } from '../lead';
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef><span class="cdk-visually-hidden">Actions</span></th>
         <td mat-cell *matCellDef="let lead" class="actions">
+          @if (discarded()) {
+            <button
+              mat-button
+              type="button"
+              [attr.aria-label]="'Réévaluer la piste ' + lead.company + ', ' + lead.jobTitle"
+              (click)="restore.emit(lead)"
+            >
+              Réévaluer
+            </button>
+          } @else {
+            <button
+              mat-button
+              type="button"
+              [attr.aria-label]="'Promouvoir la piste ' + lead.company + ', ' + lead.jobTitle"
+              (click)="promote.emit(lead)"
+            >
+              Promouvoir
+            </button>
+            <button
+              mat-button
+              type="button"
+              [attr.aria-label]="'Écarter la piste ' + lead.company + ', ' + lead.jobTitle"
+              (click)="discard.emit(lead)"
+            >
+              Écarter
+            </button>
+          }
           <button
             mat-button
             type="button"
@@ -75,6 +105,12 @@ export class LeadsTable {
   readonly leads = input.required<JobLead[]>();
   /** Onglet des pistes écartées : ajoute la colonne du motif. */
   readonly discarded = input(false);
+  /** Pistes à évaluer : en faire une candidature. */
+  readonly promote = output<JobLead>();
+  /** Pistes à évaluer : les écarter avec un motif. */
+  readonly discard = output<JobLead>();
+  /** Pistes écartées : les remettre à évaluer. */
+  readonly restore = output<JobLead>();
   readonly edit = output<JobLead>();
   readonly remove = output<JobLead>();
 
