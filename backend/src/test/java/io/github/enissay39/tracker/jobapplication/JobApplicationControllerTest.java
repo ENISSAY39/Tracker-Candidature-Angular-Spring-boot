@@ -2,6 +2,9 @@ package io.github.enissay39.tracker.jobapplication;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -134,6 +137,61 @@ class JobApplicationControllerTest {
 			.bodyJson()
 			.isLenientlyEqualTo("""
 					{"errors": [{"field": "sentOn", "message": "La date d'envoi est obligatoire pour ce statut."}]}
+					""");
+	}
+
+	@Test
+	void updateGives200WithTheUpdatedApplication() {
+		when(service.update(eq(5L), any())).thenReturn(application());
+
+		assertThat(mvc.put().uri("/api/applications/5").contentType(MediaType.APPLICATION_JSON).content("""
+				{"groupName": "Groupe Fictif", "company": "Fictif Aéro", "jobTitle": "Stagiaire ingénieur logiciel",
+				 "status": "PENDING", "sentOn": "2026-10-04", "deadlineDate": "2026-10-18"}
+				""")).hasStatusOk().bodyJson().isStrictlyEqualTo(APPLICATION_JSON);
+	}
+
+	@Test
+	void updateWithMissingRequiredFieldsGives400ListingThem() {
+		assertThat(mvc.put().uri("/api/applications/5").contentType(MediaType.APPLICATION_JSON).content("""
+				{"groupName": "", "company": "Fictif Aéro", "jobTitle": "Stagiaire"}
+				""")).hasStatus(HttpStatus.BAD_REQUEST)
+			.bodyJson()
+			.isLenientlyEqualTo("""
+					{"errors": [{"field": "groupName", "message": "ne doit pas être vide"},
+					            {"field": "status", "message": "ne doit pas être nul"}]}
+					""");
+		verifyNoInteractions(service);
+	}
+
+	@Test
+	void updateOfAnUnknownApplicationGives404ProblemDetail() {
+		when(service.update(eq(42L), any())).thenThrow(new ResourceNotFoundException("Candidature 42 introuvable."));
+
+		assertThat(mvc.put().uri("/api/applications/42").contentType(MediaType.APPLICATION_JSON).content("""
+				{"groupName": "Groupe Fictif", "company": "Fictif Aéro", "jobTitle": "Stagiaire", "status": "TO_SEND"}
+				""")).hasStatus(HttpStatus.NOT_FOUND)
+			.hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
+			.bodyJson()
+			.isLenientlyEqualTo("""
+					{"status": 404, "detail": "Candidature 42 introuvable."}
+					""");
+	}
+
+	@Test
+	void deleteGives204() {
+		assertThat(mvc.delete().uri("/api/applications/5")).hasStatus(HttpStatus.NO_CONTENT);
+		verify(service).delete(5L);
+	}
+
+	@Test
+	void deleteOfAnUnknownApplicationGives404ProblemDetail() {
+		doThrow(new ResourceNotFoundException("Candidature 42 introuvable.")).when(service).delete(42L);
+
+		assertThat(mvc.delete().uri("/api/applications/42")).hasStatus(HttpStatus.NOT_FOUND)
+			.hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
+			.bodyJson()
+			.isLenientlyEqualTo("""
+					{"status": 404, "detail": "Candidature 42 introuvable."}
 					""");
 	}
 

@@ -31,9 +31,7 @@ public class JobApplicationService {
 	}
 
 	public JobApplicationResponse findById(Long id) {
-		return repository.findById(id)
-			.map(JobApplicationMapper::toResponse)
-			.orElseThrow(() -> new ResourceNotFoundException("Candidature " + id + " introuvable."));
+		return JobApplicationMapper.toResponse(findExisting(id));
 	}
 
 	@Transactional
@@ -42,6 +40,42 @@ public class JobApplicationService {
 		CompanyGroup group = groupService.findOrCreate(request.groupName());
 		JobApplication application = new JobApplication(repository.nextNumber(), group, request.company().trim(),
 				request.jobTitle().trim(), request.status());
+		copyDetails(request, application);
+		return JobApplicationMapper.toResponse(repository.save(application));
+	}
+
+	/**
+	 * Remplace tous les champs saisissables ; le numéro ne change jamais.
+	 */
+	@Transactional
+	public JobApplicationResponse update(Long id, JobApplicationRequest request) {
+		JobApplication application = findExisting(id);
+		requireSentOnIfNeeded(request.status(), request.sentOn());
+		application.setCompanyGroup(groupService.findOrCreate(request.groupName()));
+		application.setCompany(request.company().trim());
+		application.setJobTitle(request.jobTitle().trim());
+		application.setStatus(request.status());
+		copyDetails(request, application);
+		// Écriture immédiate : la réponse porte la date de modification posée par l'entité
+		repository.saveAndFlush(application);
+		return JobApplicationMapper.toResponse(application);
+	}
+
+	/**
+	 * Supprime la candidature ; son numéro n'est jamais réattribué (la séquence ne recule pas).
+	 */
+	@Transactional
+	public void delete(Long id) {
+		repository.delete(findExisting(id));
+	}
+
+	private JobApplication findExisting(Long id) {
+		return repository.findById(id)
+			.orElseThrow(() -> new ResourceNotFoundException("Candidature " + id + " introuvable."));
+	}
+
+	// Champs facultatifs, une fois le statut posé
+	private static void copyDetails(JobApplicationRequest request, JobApplication application) {
 		application.setSentOn(request.sentOn());
 		// Statut clos : plus de prochaine étape, l'échéance fournie est ignorée
 		application.setDeadlineDate(request.status().isClosed() ? null : request.deadlineDate());
@@ -50,7 +84,6 @@ public class JobApplicationService {
 		application.setStartPeriod(Texts.trimToNull(request.startPeriod()));
 		application.setChannel(Texts.trimToNull(request.channel()));
 		application.setCvSent(Texts.trimToNull(request.cvSent()));
-		return JobApplicationMapper.toResponse(repository.save(application));
 	}
 
 	private static void requireSentOnIfNeeded(ApplicationStatus status, LocalDate sentOn) {
