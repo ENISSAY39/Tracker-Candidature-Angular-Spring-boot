@@ -16,5 +16,6 @@ export class Layout {
   protected readonly links = [
     { path: '/applications', label: 'Candidatures' },
     { path: '/groups', label: 'Groupes' },
+    { path: '/leads', label: 'Pistes' },
   ];
 }

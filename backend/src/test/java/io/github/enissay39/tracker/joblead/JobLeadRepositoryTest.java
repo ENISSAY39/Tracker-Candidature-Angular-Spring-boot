@@ -30,6 +30,19 @@ class JobLeadRepositoryTest {
 	private JdbcTemplate jdbcTemplate;
 
 	@Test
+	void listsTheLeadsByCreationDateAllOrInAState() {
+		JobLead first = repository.saveAndFlush(new JobLead("Fictif Zéro", "Stagiaire logiciel"));
+		JobLead second = repository.saveAndFlush(discardedLead("Trop loin de Ville-Test"));
+		JobLead third = repository.saveAndFlush(new JobLead("Fictif Alpha", "Stagiaire data"));
+		entityManager.clear();
+
+		assertThat(repository.findAllByOrderByCreatedAtAscIdAsc()).extracting(JobLead::getId)
+			.containsExactly(first.getId(), second.getId(), third.getId());
+		assertThat(repository.findByStateOrderByCreatedAtAscIdAsc(LeadState.TO_EVALUATE)).extracting(JobLead::getId)
+			.containsExactly(first.getId(), third.getId());
+	}
+
+	@Test
 	void savesAndReadsBackALeadToEvaluate() {
 		JobLead lead = new JobLead("Fictif Aéro - Bureau d'études, Ville-Test",
 				"Stagiaire ingénieur logiciel (réf. TEST-001)");
@@ -101,9 +114,9 @@ class JobLeadRepositoryTest {
 		JobLead discarded = repository.saveAndFlush(discardedLead("Trop loin de Ville-Test"));
 		entityManager.clear();
 
-		assertThat(repository.findByState(LeadState.TO_EVALUATE)).extracting(JobLead::getId)
+		assertThat(repository.findByStateOrderByCreatedAtAscIdAsc(LeadState.TO_EVALUATE)).extracting(JobLead::getId)
 			.containsExactly(toEvaluate.getId());
-		assertThat(repository.findByState(LeadState.DISCARDED)).extracting(JobLead::getId)
+		assertThat(repository.findByStateOrderByCreatedAtAscIdAsc(LeadState.DISCARDED)).extracting(JobLead::getId)
 			.containsExactly(discarded.getId());
 	}
 

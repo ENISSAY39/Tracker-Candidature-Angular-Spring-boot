@@ -58,13 +58,13 @@ class ExcelImportLeadsTest {
 			.toInputStream(), ImportMode.INITIAL);
 
 		assertThat(result).isEqualTo(new ImportResultResponse(1, 1, 3));
-		assertThat(leadRepository.findByState(LeadState.TO_EVALUATE))
+		assertThat(leadRepository.findByStateOrderByCreatedAtAscIdAsc(LeadState.TO_EVALUATE))
 			.extracting(JobLead::getCompany, JobLead::getJobTitle, JobLead::getPlannedCv, JobLead::getRemark,
 					JobLead::getDiscardReason)
 			.containsExactlyInAnyOrder(
 					tuple("Fictif Aéro", "Stagiaire logiciel", "CV_Test.pdf", "Annonce fictive.\nÀ comparer.", null),
 					tuple("Fictif Data", "Stagiaire data", null, null, null));
-		assertThat(leadRepository.findByState(LeadState.DISCARDED))
+		assertThat(leadRepository.findByStateOrderByCreatedAtAscIdAsc(LeadState.DISCARDED))
 			.extracting(JobLead::getCompany, JobLead::getPlannedCv, JobLead::getRemark, JobLead::getDiscardReason)
 			.containsExactly(tuple("Fictif Ferroviaire", "CV_Test.pdf", "Remarque fictive", "Trop loin de Ville-Test"));
 	}
@@ -80,7 +80,8 @@ class ExcelImportLeadsTest {
 			.toInputStream(), ImportMode.INITIAL);
 
 		assertThat(result.jobLeads()).isEqualTo(3);
-		assertThat(leadRepository.findByState(LeadState.DISCARDED)).extracting(JobLead::getDiscardReason)
+		assertThat(leadRepository.findByStateOrderByCreatedAtAscIdAsc(LeadState.DISCARDED))
+			.extracting(JobLead::getDiscardReason)
 			.containsExactly("Poste pourvu");
 	}
 

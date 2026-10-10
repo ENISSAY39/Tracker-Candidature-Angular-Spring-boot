@@ -38,6 +38,15 @@ describe('App', () => {
     expect(page.querySelector('h1')?.textContent).toContain('Groupes');
   });
 
+  it('offers the leads in the navigation and opens their page', async () => {
+    const page = await renderAt('/leads');
+
+    const link = page.querySelector<HTMLAnchorElement>('nav a[href="/leads"]');
+    expect(link?.textContent?.trim()).toBe('Pistes');
+    expect(link?.getAttribute('aria-current')).toBe('page');
+    expect(page.querySelector('h1')?.textContent).toContain('Pistes');
+  });
+
   it('marks the navigation entry of the current page as active', async () => {
     const page = await renderAt('/applications');
 
