@@ -14,23 +14,3 @@ tr.closed td {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.counters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0 0 1rem;
-  padding: 0;
-  list-style: none;
-
-  li {
-    padding: 0.25rem 0.75rem;
-    border-radius: 1rem;
-    background-color: var(--mat-sys-surface-container-high);
-    color: var(--mat-sys-on-surface);
-  }
-}
-
-.counter-count {
-  font-weight: 500;
-}

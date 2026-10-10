@@ -3,10 +3,10 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { forkJoin } from 'rxjs';
 import { ApplicationsApi } from '../applications-api';
-import { ApplicationsTable } from '../applications-table/applications-table';
+import { ApplicationsList } from '../applications-list/applications-list';
 
 @Component({
-  imports: [ApplicationsTable, MatProgressBarModule],
+  imports: [ApplicationsList, MatProgressBarModule],
   selector: 'app-applications-page',
   template: `
     <h1>Candidatures</h1>
@@ -19,7 +19,7 @@ import { ApplicationsTable } from '../applications-table/applications-table';
       @if (loaded.applications.length === 0) {
         <p>Aucune candidature pour l’instant.</p>
       } @else {
-        <app-applications-table [applications]="loaded.applications" [statuses]="loaded.statuses" />
+        <app-applications-list [applications]="loaded.applications" [statuses]="loaded.statuses" />
       }
     }
   `,

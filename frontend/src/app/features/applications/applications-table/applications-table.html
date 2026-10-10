@@ -1,12 +1,3 @@
-<ul class="counters" aria-label="Compteurs par catégorie">
-  @for (counter of counters(); track counter.category) {
-    <li>
-      <span class="counter-label">{{ counter.label }}</span
-      >&nbsp;<span class="counter-count">{{ counter.count }}</span>
-    </li>
-  }
-</ul>
-
 <table mat-table [dataSource]="rows()" matSort (matSortChange)="sort.set($event)">
   <ng-container matColumnDef="number">
     <th mat-header-cell *matHeaderCellDef mat-sort-header>N°</th>
