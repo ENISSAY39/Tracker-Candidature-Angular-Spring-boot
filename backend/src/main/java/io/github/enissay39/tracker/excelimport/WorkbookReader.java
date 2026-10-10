@@ -17,6 +17,7 @@ import io.github.enissay39.tracker.common.InvalidRequestException;
 import io.github.enissay39.tracker.common.Texts;
 import io.github.enissay39.tracker.jobapplication.ApplicationStatus;
 import io.github.enissay39.tracker.jobapplication.dto.JobApplicationRequest;
+import io.github.enissay39.tracker.joblead.dto.JobLeadRequest;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -34,6 +35,10 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 final class WorkbookReader implements AutoCloseable {
 
 	static final String APPLICATIONS_SHEET = "Toutes les candidatures";
+
+	static final String TO_EVALUATE_SHEET = "À évaluer";
+
+	static final String DISCARDED_SHEET = "Abandonnées";
 
 	private static final String NUMBER = "#";
 
@@ -58,6 +63,12 @@ final class WorkbookReader implements AutoCloseable {
 	private static final String CHANNEL = "Canal";
 
 	private static final String CV_SENT = "CV envoyé";
+
+	private static final String PLANNED_CV = "CV prévu";
+
+	private static final String REMARK = "Remarque";
+
+	private static final String DISCARD_REASON = "Motif";
 
 	// Longueurs maximales des colonnes varchar du schéma (comme les @Size de JobApplicationRequest)
 	private static final int MAX_SHORT_TEXT_LENGTH = 100;
@@ -100,7 +111,7 @@ final class WorkbookReader implements AutoCloseable {
 		List<ImportedApplication> applications = new ArrayList<>();
 		Map<Integer, Integer> rowByNumber = new HashMap<>();
 		for (int index = columns.headerIndex() + 1; index <= sheet.getLastRowNum(); index++) {
-			ApplicationRow row = new ApplicationRow(sheet, index, columns);
+			SheetRow row = new SheetRow(sheet, index, columns);
 			if (row.isBlank(NUMBER)) {
 				break;
 			}
@@ -109,9 +120,53 @@ final class WorkbookReader implements AutoCloseable {
 			if (previousRow != null) {
 				throw row.rejected("numéro " + number + " en double (déjà ligne " + previousRow + ").");
 			}
-			applications.add(new ImportedApplication(number, row.request()));
+			applications.add(new ImportedApplication(number, applicationRequest(row)));
 		}
 		return applications;
+	}
+
+	/**
+	 * Feuille de pistes : en-têtes sur la première ligne dont la première cellule vaut « Entreprise », lecture
+	 * jusqu'à la fin de la feuille, lignes entièrement vides ignorées. Les pistes de « Abandonnées » sont écartées et
+	 * doivent avoir un motif.
+	 */
+	List<ImportedLead> readLeads(String sheetName, boolean discarded) {
+		Sheet sheet = requireSheet(sheetName);
+		Columns columns = headerRow(sheet, COMPANY);
+		columns.require(COMPANY, JOB_TITLE);
+		if (discarded) {
+			columns.require(DISCARD_REASON);
+		}
+		List<ImportedLead> leads = new ArrayList<>();
+		for (int index = columns.headerIndex() + 1; index <= sheet.getLastRowNum(); index++) {
+			SheetRow row = new SheetRow(sheet, index, columns);
+			if (row.isEmpty()) {
+				continue;
+			}
+			JobLeadRequest request = new JobLeadRequest(row.required(COMPANY, MAX_TEXT_LENGTH),
+					row.required(JOB_TITLE, MAX_TEXT_LENGTH), row.optional(PLANNED_CV, MAX_TEXT_LENGTH),
+					row.text(REMARK));
+			String reason = discarded ? row.text(DISCARD_REASON) : null;
+			if (discarded && reason == null) {
+				throw row.rejected("« " + DISCARD_REASON + " » est vide alors que la piste est écartée.");
+			}
+			leads.add(new ImportedLead(request, reason));
+		}
+		return leads;
+	}
+
+	private JobApplicationRequest applicationRequest(SheetRow row) {
+		ApplicationStatus status = row.status();
+		LocalDate sentOn = row.date(SENT_ON);
+		// ADR 0001 : la date d'envoi est contrôlée ici, pour citer la ligne fautive
+		if (status.requiresSentOn() && sentOn == null) {
+			throw row.rejected("« " + SENT_ON + " » est vide alors que le statut « " + status.getLabel() + " » l'exige.");
+		}
+		return new JobApplicationRequest(row.required(GROUP, MAX_SHORT_TEXT_LENGTH),
+				row.required(COMPANY, MAX_TEXT_LENGTH), row.required(JOB_TITLE, MAX_TEXT_LENGTH), status, sentOn,
+				row.optional(DEADLINE_LABEL, MAX_TEXT_LENGTH), row.date(DEADLINE_DATE), row.text(NOTES),
+				row.optional(START_PERIOD, MAX_SHORT_TEXT_LENGTH), row.optional(CHANNEL, MAX_TEXT_LENGTH),
+				row.optional(CV_SENT, MAX_TEXT_LENGTH));
 	}
 
 	@Override
@@ -159,9 +214,9 @@ final class WorkbookReader implements AutoCloseable {
 	}
 
 	/**
-	 * Une ligne de candidature : chaque lecture vérifie sa cellule et rejette l'import en citant la ligne.
+	 * Une ligne de feuille : chaque lecture vérifie sa cellule et rejette l'import en citant la feuille et la ligne.
 	 */
-	private final class ApplicationRow {
+	private final class SheetRow {
 
 		private final Sheet sheet;
 
@@ -171,7 +226,7 @@ final class WorkbookReader implements AutoCloseable {
 
 		private final Columns columns;
 
-		ApplicationRow(Sheet sheet, int index, Columns columns) {
+		SheetRow(Sheet sheet, int index, Columns columns) {
 			this.sheet = sheet;
 			this.index = index;
 			this.row = sheet.getRow(index);
@@ -184,7 +239,16 @@ final class WorkbookReader implements AutoCloseable {
 		}
 
 		boolean isBlank(String heading) {
-			return text(cell(heading)) == null;
+			return text(heading) == null;
+		}
+
+		/** Aucune des colonnes connues n'est renseignée. */
+		boolean isEmpty() {
+			return columns.indexes().keySet().stream().allMatch(this::isBlank);
+		}
+
+		String text(String heading) {
+			return WorkbookReader.this.text(cell(heading));
 		}
 
 		int number() {
@@ -195,22 +259,7 @@ final class WorkbookReader implements AutoCloseable {
 					return (int) value;
 				}
 			}
-			throw rejected("numéro « " + text(cell) + " » invalide.");
-		}
-
-		JobApplicationRequest request() {
-			ApplicationStatus status = status();
-			LocalDate sentOn = date(SENT_ON);
-			// ADR 0001 : la date d'envoi est contrôlée ici, pour citer la ligne fautive
-			if (status.requiresSentOn() && sentOn == null) {
-				throw rejected("« " + SENT_ON + " » est vide alors que le statut « " + status.getLabel()
-						+ " » l'exige.");
-			}
-			return new JobApplicationRequest(required(GROUP, MAX_SHORT_TEXT_LENGTH),
-					required(COMPANY, MAX_TEXT_LENGTH), required(JOB_TITLE, MAX_TEXT_LENGTH), status, sentOn,
-					optional(DEADLINE_LABEL, MAX_TEXT_LENGTH), date(DEADLINE_DATE), text(cell(NOTES)),
-					optional(START_PERIOD, MAX_SHORT_TEXT_LENGTH), optional(CHANNEL, MAX_TEXT_LENGTH),
-					optional(CV_SENT, MAX_TEXT_LENGTH));
+			throw rejected("numéro « " + text(NUMBER) + " » invalide.");
 		}
 
 		InvalidRequestException rejected(String reason) {
@@ -218,8 +267,8 @@ final class WorkbookReader implements AutoCloseable {
 					"Import refusé : feuille « " + sheet.getSheetName() + " », ligne " + excelRow() + " : " + reason);
 		}
 
-		private ApplicationStatus status() {
-			String label = text(cell(STATUS));
+		ApplicationStatus status() {
+			String label = text(STATUS);
 			ApplicationStatus status = (label == null) ? null : STATUS_BY_LABEL.get(label);
 			if (status == null) {
 				throw rejected("statut « " + (label == null ? "" : label) + " » inconnu.");
@@ -227,18 +276,18 @@ final class WorkbookReader implements AutoCloseable {
 			return status;
 		}
 
-		private LocalDate date(String heading) {
-			Cell cell = cell(heading);
-			if (text(cell) == null) {
+		LocalDate date(String heading) {
+			if (isBlank(heading)) {
 				return null;
 			}
+			Cell cell = cell(heading);
 			if (cellType(cell) != CellType.NUMERIC || !DateUtil.isCellDateFormatted(cell)) {
 				throw rejected("« " + heading + " » (cellule " + cell.getAddress() + ") n'est pas une date.");
 			}
 			return cell.getLocalDateTimeCellValue().toLocalDate();
 		}
 
-		private String required(String heading, int maxLength) {
+		String required(String heading, int maxLength) {
 			String value = optional(heading, maxLength);
 			if (value == null) {
 				throw rejected("« " + heading + " » est vide.");
@@ -246,8 +295,8 @@ final class WorkbookReader implements AutoCloseable {
 			return value;
 		}
 
-		private String optional(String heading, int maxLength) {
-			String value = text(cell(heading));
+		String optional(String heading, int maxLength) {
+			String value = text(heading);
 			if (value != null && value.length() > maxLength) {
 				throw rejected("« " + heading + " » dépasse " + maxLength + " caractères (" + value.length() + ").");
 			}
