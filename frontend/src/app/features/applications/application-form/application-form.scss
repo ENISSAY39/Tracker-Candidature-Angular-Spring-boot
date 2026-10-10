@@ -1,0 +1,26 @@
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 60rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  mat-form-field {
+    flex: 1 1 14rem;
+  }
+}
+
+.wide {
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

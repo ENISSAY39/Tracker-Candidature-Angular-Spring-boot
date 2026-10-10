@@ -12,18 +12,30 @@ const STATUSES: Status[] = [
     code: 'INTERVIEW',
     label: 'Entretien',
     order: 2,
+    requiresSentOn: true,
+
+    closed: false,
+
     category: { code: 'INTERVIEW', label: 'Entretien', order: 2 },
   },
   {
     code: 'PENDING',
     label: 'En attente',
     order: 7,
+    requiresSentOn: true,
+
+    closed: false,
+
     category: { code: 'PENDING', label: 'En attente', order: 4 },
   },
   {
     code: 'REJECTED',
     label: 'Refus',
     order: 9,
+    requiresSentOn: true,
+
+    closed: true,
+
     category: { code: 'REJECTED', label: 'Refus', order: 6 },
   },
 ];
@@ -82,6 +94,13 @@ describe('ApplicationsPage', () => {
     await respond([]);
 
     expect(page().querySelector('[role="progressbar"]')).toBeNull();
+  });
+
+  it('offers to create a new application', async () => {
+    await respond([]);
+
+    const link = page().querySelector('a[href="/applications/new"]');
+    expect(link?.textContent?.trim()).toBe('Nouvelle candidature');
   });
 
   it('says so when there is no application yet', async () => {

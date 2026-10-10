@@ -1,15 +1,29 @@
 import { Component, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ApplicationsApi } from '../applications-api';
 import { ApplicationsList } from '../applications-list/applications-list';
 
 @Component({
-  imports: [ApplicationsList, MatProgressBarModule],
+  imports: [ApplicationsList, MatButtonModule, MatProgressBarModule, RouterLink],
   selector: 'app-applications-page',
+  styles: `
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+  `,
   template: `
-    <h1>Candidatures</h1>
+    <header>
+      <h1>Candidatures</h1>
+      <a mat-flat-button routerLink="/applications/new">Nouvelle candidature</a>
+    </header>
     @if (data.isLoading()) {
       <mat-progress-bar mode="indeterminate" aria-label="Chargement des candidatures" />
     } @else if (data.error()) {

@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { ApplicationsApi } from './applications-api';
 import { Status } from '../../shared/status';
-import { JobApplication } from './application';
+import { JobApplication, JobApplicationRequest } from './application';
 
 describe('ApplicationsApi', () => {
   let api: ApplicationsApi;
@@ -54,6 +54,10 @@ describe('ApplicationsApi', () => {
         code: 'PENDING',
         label: 'En attente',
         order: 7,
+        requiresSentOn: true,
+
+        closed: false,
+
         category: { code: 'PENDING', label: 'En attente', order: 4 },
       },
     ];
@@ -87,5 +91,51 @@ describe('ApplicationsApi', () => {
     request.flush(null, { status: 204, statusText: 'No Content' });
 
     expect(await result).toBeNull();
+  });
+
+  const REQUEST: JobApplicationRequest = {
+    groupName: 'Groupe Fictif',
+    company: 'Fictif Aéro',
+    jobTitle: 'Stagiaire ingénieur logiciel',
+    status: 'PENDING',
+    sentOn: '2026-10-04',
+    deadlineLabel: null,
+    deadlineDate: '2026-10-18',
+    notes: null,
+    startPeriod: null,
+    channel: 'Site carrière',
+    cvSent: null,
+  };
+
+  it('creates an application with POST /api/applications', async () => {
+    const result = firstValueFrom(api.create(REQUEST));
+
+    const request = backend.expectOne('/api/applications');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(REQUEST);
+    request.flush({ id: 9, number: 27 });
+
+    expect(await result).toMatchObject({ id: 9, number: 27 });
+  });
+
+  it('replaces every field with PUT /api/applications/{id}', async () => {
+    const result = firstValueFrom(api.update(9, REQUEST));
+
+    const request = backend.expectOne('/api/applications/9');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(REQUEST);
+    request.flush({ id: 9, number: 27 });
+
+    expect(await result).toMatchObject({ id: 9 });
+  });
+
+  it('reads the groups with GET /api/groups', async () => {
+    const result = firstValueFrom(api.groups());
+
+    const request = backend.expectOne('/api/groups');
+    expect(request.request.method).toBe('GET');
+    request.flush([{ id: 1, name: 'Groupe Fictif' }]);
+
+    expect(await result).toEqual([{ id: 1, name: 'Groupe Fictif' }]);
   });
 });

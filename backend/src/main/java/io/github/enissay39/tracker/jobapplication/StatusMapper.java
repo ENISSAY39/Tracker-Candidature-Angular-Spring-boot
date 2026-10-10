@@ -10,8 +10,8 @@ final class StatusMapper {
 
 	// order : rang à partir de 1, dans l'ordre de déclaration de l'enum
 	static StatusResponse toResponse(ApplicationStatus status) {
-		return new StatusResponse(status.name(), status.getLabel(), status.ordinal() + 1,
-				toResponse(status.getCategory()));
+		return new StatusResponse(status.name(), status.getLabel(), status.ordinal() + 1, status.requiresSentOn(),
+				status.isClosed(), toResponse(status.getCategory()));
 	}
 
 	private static StatusCategoryResponse toResponse(StatusCategory category) {

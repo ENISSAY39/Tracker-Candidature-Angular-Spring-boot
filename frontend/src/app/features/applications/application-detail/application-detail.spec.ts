@@ -17,6 +17,10 @@ const STATUSES: Status[] = [
     code: 'PENDING',
     label: 'En attente',
     order: 7,
+    requiresSentOn: true,
+
+    closed: false,
+
     category: { code: 'PENDING', label: 'En attente', order: 4 },
   },
 ];
@@ -100,6 +104,14 @@ describe('ApplicationDetail', () => {
     expect(field(page, 'Début')).toBe('Févr. 2027, 6 mois');
     expect(field(page, 'Canal')).toBe('Site carrière');
     expect(field(page, 'CV envoyé')).toBe('CV_Test.pdf, LM_Test.pdf');
+  });
+
+  it('offers to edit the application', async () => {
+    const page = await open(5, APPLICATION);
+
+    expect(page.querySelector('a[href="/applications/5/edit"]')?.textContent?.trim()).toBe(
+      'Modifier',
+    );
   });
 
   it('shows the whole notes with their line breaks', async () => {

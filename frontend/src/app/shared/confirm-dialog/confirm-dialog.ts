@@ -31,8 +31,14 @@ export class ConfirmDialog {
 
 /** Ouvre le dialogue ; émet `true` si l'utilisateur confirme, `false` sinon (annulation, Échap, clic dehors). */
 export function openConfirmDialog(dialog: MatDialog, data: ConfirmDialogData): Observable<boolean> {
-  return dialog
-    .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, { data })
-    .afterClosed()
-    .pipe(map((confirmed) => confirmed === true));
+  return (
+    dialog
+      // Ouvert parfois par un garde de route : la navigation en attente ne doit pas le refermer
+      .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+        data,
+        closeOnNavigation: false,
+      })
+      .afterClosed()
+      .pipe(map((confirmed) => confirmed === true))
+  );
 }
