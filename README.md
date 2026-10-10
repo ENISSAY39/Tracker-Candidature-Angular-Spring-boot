@@ -2,7 +2,7 @@
 
 Application web **mono-utilisateur, en local**, qui remplace mon classeur Excel de suivi de candidatures (stage de fin d'études). On y retrouve :
 
-- les candidatures numérotées, rattachées à un groupe employeur, avec leur statut, leur échéance de relance et des notes de suivi ;
+- les candidatures numérotées, rattachées à un groupe (la maison mère), avec leur statut, leur échéance de relance et des notes de suivi ;
 - une page par groupe, l'équivalent des feuilles par employeur du classeur ;
 - un vivier de pistes, à évaluer ou écartées.
 
@@ -12,7 +12,7 @@ Le classeur se charge en une fois depuis l'écran **Import**.
 >
 > - **Aucune authentification** : l'application est faite pour un usage local. Les ports sont publiés sur `127.0.0.1` seulement ; ne les exposez pas sur le réseau.
 > - **Données personnelles** : `data/` (classeur, sauvegardes), `.env` et tout fichier `*.xlsx` restent hors Git (`.gitignore`). Ne les commitez pas, ne les collez pas dans une issue.
-> - **Commandes qui détruisent les données** : `docker compose down -v`, `docker volume rm tracker_postgres-data`, `dropdb`, ainsi qu'un import en mode remplacement. Faites une sauvegarde avant.
+> - **Commandes qui détruisent les données** : `docker compose down -v`, `docker volume rm tracker_postgres-data`, `dropdb`, `DROP`, `TRUNCATE`, `flyway clean`, ainsi qu'un import en mode remplacement. Faites une sauvegarde avant.
 
 ## Démarrage en conteneurs
 
@@ -61,8 +61,8 @@ Docker Compose lit `.env` à la racine ; le backend lancé en local aussi (`spri
 
 Règles :
 
-- **Tout ou rien** : à la moindre anomalie, rien n'est écrit. Le motif s'affiche dans la page et cite la feuille et la ligne à corriger (statut inconnu, date d'envoi manquante, cellule qui n'est pas une date, numéro en double…).
-- **Feuilles lues** :
+- **Tout ou rien** : à la moindre anomalie, rien n'est écrit. Le motif s'affiche dans la page et cite la feuille et, le cas échéant, la ligne à corriger (statut inconnu, date d'envoi manquante, cellule qui n'est pas une date, numéro en double, feuille ou colonne introuvable…).
+- **Feuilles lues**, toutes trois obligatoires :
   - « Toutes les candidatures » donne les candidatures et les groupes ;
   - « À évaluer » et « Abandonnées » donnent les pistes, à évaluer ou écartées ;
   - les autres feuilles sont ignorées.
@@ -91,7 +91,7 @@ docker compose exec -T postgres psql -q -U tracker -d tracker < data/backup-AAAA
 docker compose start backend
 ```
 
-Au redémarrage, Flyway retrouve son historique dans la sauvegarde et la numérotation reprend après le plus grand numéro restauré.
+Au redémarrage, Flyway retrouve son historique dans la sauvegarde et la numérotation reprend là où en était la séquence sauvegardée.
 
 ## Développement local
 
@@ -143,14 +143,11 @@ Les tests n'utilisent que des données fictives, dont des classeurs générés e
 
 - **Backend** (`backend/`) : un package par fonctionnalité.
   - Packages : `jobapplication`, `companygroup`, `joblead`, `excelimport`, ainsi que `common` pour les erreurs `ProblemDetail` et les exceptions métier.
-  - Couches : contrôleur mince, service transactionnel qui porte les règles métier, repository Spring Data.
-  - Entrées et sorties en `record` validés ; aucune entité JPA n'est exposée.
 - **API REST** sous `/api`, en JSON, dates au format `yyyy-MM-dd`, sans pagination (moins de 1 000 lignes).
 - **Frontend** (`frontend/`) : `core/` (mise en page, intercepteur d'erreurs, locale fr), `shared/` (badges, échéances, dialogue de confirmation) et un dossier par écran sous `features/`.
   - Écrans : `applications`, `groups`, `leads`, `import`, chargés à la demande.
-  - Les appels HTTP passent uniquement par un service `…-api.ts` par feature.
 
-Le détail du modèle de données, des règles métier, de l'API et des conventions est dans `CLAUDE.md`.
+Le détail du modèle de données, des règles métier, de l'API et des conventions de code est dans `CLAUDE.md`.
 
 ## Intégration continue
 
