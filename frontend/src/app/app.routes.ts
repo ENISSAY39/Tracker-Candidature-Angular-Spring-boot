@@ -3,11 +3,8 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: 'applications',
-    title: 'Candidatures',
-    loadComponent: () =>
-      import('./features/applications/applications-page/applications-page').then(
-        (m) => m.ApplicationsPage,
-      ),
+    loadChildren: () =>
+      import('./features/applications/applications.routes').then((m) => m.APPLICATIONS_ROUTES),
   },
   { path: '', pathMatch: 'full', redirectTo: 'applications' },
   { path: '**', redirectTo: 'applications' },

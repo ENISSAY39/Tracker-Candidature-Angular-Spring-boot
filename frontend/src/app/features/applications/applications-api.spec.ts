@@ -68,4 +68,24 @@ describe('ApplicationsApi', () => {
     expect(await second).toEqual(statuses);
     expect(await firstValueFrom(api.statuses())).toEqual(statuses);
   });
+
+  it('reads one application with GET /api/applications/{id}', async () => {
+    const result = firstValueFrom(api.get(5));
+
+    const request = backend.expectOne('/api/applications/5');
+    expect(request.request.method).toBe('GET');
+    request.flush({ id: 5, number: 26 });
+
+    expect(await result).toMatchObject({ id: 5, number: 26 });
+  });
+
+  it('deletes one application with DELETE /api/applications/{id}', async () => {
+    const result = firstValueFrom(api.delete(5));
+
+    const request = backend.expectOne('/api/applications/5');
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null, { status: 204, statusText: 'No Content' });
+
+    expect(await result).toBeNull();
+  });
 });

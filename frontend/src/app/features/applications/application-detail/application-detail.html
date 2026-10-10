@@ -1,0 +1,61 @@
+@if (data.isLoading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Chargement de la candidature" />
+} @else if (data.error()) {
+  @if (notFound()) {
+    <h1>Candidature introuvable</h1>
+    <p>Cette candidature n’existe pas ou a été supprimée.</p>
+  } @else {
+    <p>La candidature n’a pas pu être chargée.</p>
+  }
+  <a mat-button routerLink="/applications">Retour à la liste</a>
+} @else if (data.hasValue()) {
+  @let application = data.value().application;
+  <a mat-button routerLink="/applications">Retour à la liste</a>
+
+  <header>
+    <h1>N° {{ application.number }} · {{ application.company }}</h1>
+    @if (status(); as status) {
+      <app-status-badge [status]="status" />
+    }
+  </header>
+
+  <dl>
+    <dt>Groupe</dt>
+    <dd>{{ application.groupName }}</dd>
+    <dt>Entreprise</dt>
+    <dd>{{ application.company }}</dd>
+    <dt>Poste</dt>
+    <dd>{{ application.jobTitle }}</dd>
+    <dt>Envoyée le</dt>
+    <dd>{{ (application.sentOn | date: 'dd/MM/yyyy') ?? '—' }}</dd>
+    <dt>Échéance</dt>
+    <dd>{{ application.deadlineLabel ?? '—' }}</dd>
+    <dt>Date échéance</dt>
+    <dd>
+      @if (application.deadlineDate) {
+        <app-deadline-cell [date]="application.deadlineDate" [closed]="closed()" [today]="today" />
+      } @else {
+        —
+      }
+    </dd>
+    <dt>Début</dt>
+    <dd>{{ application.startPeriod ?? '—' }}</dd>
+    <dt>Canal</dt>
+    <dd>{{ application.channel ?? '—' }}</dd>
+    <dt>CV envoyé</dt>
+    <dd>{{ application.cvSent ?? '—' }}</dd>
+  </dl>
+
+  <section aria-labelledby="notes-title">
+    <h2 id="notes-title">Prochaine action</h2>
+    @if (application.notes) {
+      <p class="notes">{{ application.notes }}</p>
+    } @else {
+      <p>Aucune note.</p>
+    }
+  </section>
+
+  <div class="actions">
+    <button mat-stroked-button type="button" (click)="delete(application)">Supprimer</button>
+  </div>
+}

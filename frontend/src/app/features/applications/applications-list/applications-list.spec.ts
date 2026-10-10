@@ -1,3 +1,4 @@
+import { provideRouter } from '@angular/router';
 import { HarnessLoader } from '@angular/cdk/testing';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -69,6 +70,10 @@ const APPLICATIONS = [
 describe('ApplicationsList', () => {
   let fixture: ComponentFixture<ApplicationsList>;
   let loader: HarnessLoader;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+  });
 
   async function render(showGroupFilter = true): Promise<void> {
     fixture = TestBed.createComponent(ApplicationsList);

@@ -8,7 +8,7 @@ import {
   MAT_DATE_LOCALE,
   MAT_NATIVE_DATE_FORMATS,
 } from '@angular/material/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { FrenchDateAdapter } from './core/french-date-adapter';
 import { httpErrorsInterceptor } from './core/http-errors-interceptor';
 import { routes } from './app.routes';
@@ -19,7 +19,8 @@ registerLocaleData(localeFr);
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
+    // Paramètres d'URL (`:id`) passés aux entrées des composants routés
+    provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(withInterceptors([httpErrorsInterceptor])),
     { provide: LOCALE_ID, useValue: 'fr-FR' },
     { provide: MAT_DATE_LOCALE, useValue: 'fr-FR' },
