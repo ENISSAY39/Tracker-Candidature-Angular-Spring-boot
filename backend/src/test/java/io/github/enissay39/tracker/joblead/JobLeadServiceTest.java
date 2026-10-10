@@ -226,8 +226,7 @@ class JobLeadServiceTest {
 	}
 
 	private static JobLead discarded(JobLead lead, String reason) {
-		lead.setState(LeadState.DISCARDED);
-		lead.setDiscardReason(reason);
+		lead.discard(reason);
 		return lead;
 	}
 

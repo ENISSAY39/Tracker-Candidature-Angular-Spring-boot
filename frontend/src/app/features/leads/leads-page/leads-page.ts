@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, ElementRef, inject, viewChild } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -23,6 +23,10 @@ import { openPromoteLeadDialog } from '../promote-lead-dialog/promote-lead-dialo
   imports: [LeadsTable, MatButtonModule, MatProgressBarModule, MatTabsModule],
   selector: 'app-leads-page',
   styles: `
+    h1:focus {
+      outline: none;
+    }
+
     header {
       display: flex;
       flex-wrap: wrap;
@@ -37,7 +41,7 @@ import { openPromoteLeadDialog } from '../promote-lead-dialog/promote-lead-dialo
   `,
   template: `
     <header>
-      <h1>Pistes</h1>
+      <h1 #heading tabindex="-1">Pistes</h1>
       <button mat-flat-button type="button" (click)="add()">Nouvelle piste</button>
     </header>
     @if (leads.isLoading()) {
@@ -81,6 +85,7 @@ export class LeadsPage {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
+  private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
 
   protected readonly leads = rxResource({ stream: () => this.api.list() });
 
@@ -116,6 +121,7 @@ export class LeadsPage {
       .pipe(filter((discarded) => discarded !== undefined))
       .subscribe((discarded) => {
         this.replace(discarded);
+        this.moveFocusToHeading();
         this.notify('Piste écartée.');
       });
   }
@@ -124,6 +130,7 @@ export class LeadsPage {
     this.api.restore(lead.id).subscribe({
       next: (restored) => {
         this.replace(restored);
+        this.moveFocusToHeading();
         this.notify('Piste remise à évaluer.');
       },
       // Échec déjà affiché par l'intercepteur : la piste reste où elle est
@@ -163,6 +170,11 @@ export class LeadsPage {
   /** La piste renvoyée par le serveur remplace l'ancienne ; un changement d'état la fait changer d'onglet. */
   private replace(updated: JobLead): void {
     this.leads.update((leads) => leads?.map((each) => (each.id === updated.id ? updated : each)));
+  }
+
+  /** La ligne a quitté l'onglet avec le bouton qui avait le focus : il repart du titre de la page. */
+  private moveFocusToHeading(): void {
+    this.heading()?.nativeElement.focus();
   }
 
   private notify(message: string): void {

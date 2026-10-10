@@ -286,6 +286,8 @@ describe('LeadsPage', () => {
       });
       expect(companies()).toEqual(['Fictif 2']);
       expect(document.body.textContent).toContain('Piste écartée.');
+      // Le bouton « Écarter » a disparu avec la ligne : le focus repart du titre
+      await vi.waitFor(() => expect(document.activeElement).toBe(page().querySelector('h1')));
     });
 
     it('restores a discarded lead directly: it moves back to the leads to evaluate', async () => {

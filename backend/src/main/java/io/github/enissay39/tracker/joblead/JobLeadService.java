@@ -5,9 +5,7 @@ import java.util.List;
 import io.github.enissay39.tracker.common.ConflictException;
 import io.github.enissay39.tracker.common.ResourceNotFoundException;
 import io.github.enissay39.tracker.common.Texts;
-import io.github.enissay39.tracker.jobapplication.ApplicationStatus;
 import io.github.enissay39.tracker.jobapplication.JobApplicationService;
-import io.github.enissay39.tracker.jobapplication.dto.JobApplicationRequest;
 import io.github.enissay39.tracker.jobapplication.dto.JobApplicationResponse;
 import io.github.enissay39.tracker.joblead.dto.DiscardLeadRequest;
 import io.github.enissay39.tracker.joblead.dto.JobLeadRequest;
@@ -77,9 +75,8 @@ public class JobLeadService {
 		if (lead.getState() == LeadState.DISCARDED) {
 			throw new ConflictException("La piste " + id + " est écartée : réévaluez-la avant de la promouvoir.");
 		}
-		JobApplicationResponse application = applicationService.create(new JobApplicationRequest(request.groupName(),
-				lead.getCompany(), lead.getJobTitle(), ApplicationStatus.TO_SEND, null, null, null, lead.getRemark(),
-				null, null, lead.getPlannedCv()));
+		JobApplicationResponse application = applicationService
+			.create(JobLeadMapper.toApplicationRequest(lead, request.groupName()));
 		repository.delete(lead);
 		return application;
 	}
@@ -93,8 +90,7 @@ public class JobLeadService {
 		if (lead.getState() == LeadState.DISCARDED) {
 			throw new ConflictException("La piste " + id + " est déjà écartée.");
 		}
-		lead.setState(LeadState.DISCARDED);
-		lead.setDiscardReason(request.reason().trim());
+		lead.discard(request.reason().trim());
 		repository.saveAndFlush(lead);
 		return JobLeadMapper.toResponse(lead);
 	}
@@ -108,8 +104,7 @@ public class JobLeadService {
 		if (lead.getState() == LeadState.TO_EVALUATE) {
 			throw new ConflictException("La piste " + id + " est déjà à évaluer.");
 		}
-		lead.setState(LeadState.TO_EVALUATE);
-		lead.setDiscardReason(null);
+		lead.restore();
 		repository.saveAndFlush(lead);
 		return JobLeadMapper.toResponse(lead);
 	}
@@ -132,8 +127,7 @@ public class JobLeadService {
 		copyDetails(request, lead);
 		String reason = Texts.trimToNull(discardReason);
 		if (reason != null) {
-			lead.setState(LeadState.DISCARDED);
-			lead.setDiscardReason(reason);
+			lead.discard(reason);
 		}
 		repository.save(lead);
 	}

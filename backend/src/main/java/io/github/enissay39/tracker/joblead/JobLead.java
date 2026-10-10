@@ -62,6 +62,22 @@ public class JobLead {
 		this.state = LeadState.TO_EVALUATE;
 	}
 
+	/**
+	 * Passe la piste en écartée avec son motif, renseigné si et seulement si elle est écartée (ADR 0001).
+	 */
+	public void discard(String reason) {
+		this.state = LeadState.DISCARDED;
+		this.discardReason = reason;
+	}
+
+	/**
+	 * Remet la piste à évaluer et efface son motif.
+	 */
+	public void restore() {
+		this.state = LeadState.TO_EVALUATE;
+		this.discardReason = null;
+	}
+
 	@PrePersist
 	void onCreate() {
 		Instant now = Instant.now();
