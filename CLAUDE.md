@@ -152,7 +152,7 @@ GET /groups · PUT /groups/{id} (renommer) · DELETE /groups/{id} (409 si le gro
 GET /leads?state= · POST /leads · PUT /leads/{id} · DELETE /leads/{id}
 POST /leads/{id}/promote {groupName} · POST /leads/{id}/discard {reason} · POST /leads/{id}/restore
 POST /import/excel                multipart `file`, option `?mode=replace`
-GET /backup/status                {available, lastBackupAt} ; dossier absent ou illisible → available=false, jamais 500
+GET /backup/status                {available, lastBackupAt (instant ISO 8601)} ; dossier absent ou illisible → available=false, jamais 500
 ```
 
 - Volume faible (< 1 000 lignes) : `GET /applications` renvoie tout, **sans pagination** ; tri et filtres côté front.
