@@ -1,0 +1,16 @@
+table {
+  width: 100%;
+}
+
+// Statut clos : ligne grisée (contraste 5,1:1 sur fond clair)
+tr.closed td {
+  color: #6e6e6e;
+}
+
+.notes {
+  display: block;
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
