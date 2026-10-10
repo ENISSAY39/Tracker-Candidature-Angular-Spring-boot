@@ -13,7 +13,8 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
 	@Query(value = "select cast(nextval('job_application_number_seq') as integer)", nativeQuery = true)
 	int nextNumber();
 
-	@Query("select a from JobApplication a join fetch a.companyGroup")
+	// Ordre stable par numéro ; le tri métier est fait par le front
+	@Query("select a from JobApplication a join fetch a.companyGroup order by a.number")
 	List<JobApplication> findAllWithCompanyGroup();
 
 	boolean existsByCompanyGroupId(Long companyGroupId);
