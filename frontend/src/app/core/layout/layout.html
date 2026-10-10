@@ -1,0 +1,17 @@
+<mat-toolbar>
+  <span class="title">Tracker de candidatures</span>
+  <nav aria-label="Navigation principale">
+    @for (link of links; track link.path) {
+      <a
+        mat-button
+        [routerLink]="link.path"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        >{{ link.label }}</a
+      >
+    }
+  </nav>
+</mat-toolbar>
+<main>
+  <ng-content />
+</main>

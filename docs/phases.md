@@ -68,7 +68,7 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 
 ## Phase 5 — Écran liste
 
-- [ ] Layout et navigation (`core/`), intercepteur d'erreurs HTTP, locale `fr-FR`
+- [x] Layout et navigation (`core/`), intercepteur d'erreurs HTTP, locale `fr-FR`
 - [ ] `applications-api.ts` et types calqués sur les `…Response`
 - [ ] Table Angular Material triable avec tri par défaut (catégorie, puis `deadline_date`, puis `number`)
 - [ ] Composants partagés : `status-badge` (palette par catégorie, WCAG AA), `deadline-cell` (gras `#C00000` si dépassée, `#B45309` de J à J+3)
