@@ -44,9 +44,8 @@ interface ApplicationFormModel {
   cvSent: string;
 }
 
-// Longueurs maximales des colonnes, comme les @Size du backend
-const MAX_SHORT_TEXT_LENGTH = 100;
-const MAX_TEXT_LENGTH = 255;
+// Seul le nom du groupe a une longueur maximale, comme le @Size du backend
+const MAX_GROUP_NAME_LENGTH = 100;
 
 /**
  * Création (`/applications/new`) et modification (`/applications/:id/edit`) d'une candidature. Le numéro n'est jamais
@@ -105,15 +104,11 @@ export class ApplicationForm {
 
   protected readonly form = form(this.model, (path) => {
     required(path.groupName, { message: 'Le groupe est obligatoire.' });
-    maxLength(path.groupName, MAX_SHORT_TEXT_LENGTH, {
-      message: `${MAX_SHORT_TEXT_LENGTH} caractères au plus.`,
+    maxLength(path.groupName, MAX_GROUP_NAME_LENGTH, {
+      message: `${MAX_GROUP_NAME_LENGTH} caractères au plus.`,
     });
     required(path.company, { message: 'L’entreprise est obligatoire.' });
-    maxLength(path.company, MAX_TEXT_LENGTH, { message: `${MAX_TEXT_LENGTH} caractères au plus.` });
     required(path.jobTitle, { message: 'Le poste est obligatoire.' });
-    maxLength(path.jobTitle, MAX_TEXT_LENGTH, {
-      message: `${MAX_TEXT_LENGTH} caractères au plus.`,
-    });
     required(path.status, { message: 'Le statut est obligatoire.' });
     required(path.sentOn, {
       message: 'La date d’envoi est obligatoire pour ce statut.',
@@ -121,14 +116,6 @@ export class ApplicationForm {
     });
     // Statut clos : plus de prochaine étape, l'échéance ne serait pas conservée
     disabled(path.deadlineDate, ({ valueOf }) => this.isClosed(valueOf(path.status)));
-    maxLength(path.deadlineLabel, MAX_TEXT_LENGTH, {
-      message: `${MAX_TEXT_LENGTH} caractères au plus.`,
-    });
-    maxLength(path.startPeriod, MAX_SHORT_TEXT_LENGTH, {
-      message: `${MAX_SHORT_TEXT_LENGTH} caractères au plus.`,
-    });
-    maxLength(path.channel, MAX_TEXT_LENGTH, { message: `${MAX_TEXT_LENGTH} caractères au plus.` });
-    maxLength(path.cvSent, MAX_TEXT_LENGTH, { message: `${MAX_TEXT_LENGTH} caractères au plus.` });
   });
 
   protected readonly loading = computed(

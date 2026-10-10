@@ -24,13 +24,13 @@ public class JobLead {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column(nullable = false)
+	@Column(nullable = false, columnDefinition = "text")
 	private String company;
 
-	@Column(name = "job_title", nullable = false)
+	@Column(name = "job_title", nullable = false, columnDefinition = "text")
 	private String jobTitle;
 
-	@Column(name = "planned_cv")
+	@Column(name = "planned_cv", columnDefinition = "text")
 	private String plannedCv;
 
 	@Column(columnDefinition = "text")

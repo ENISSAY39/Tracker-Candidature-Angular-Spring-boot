@@ -90,12 +90,12 @@ class JobLeadControllerTest {
 	@Test
 	void createWithoutCompanyOrJobTitleGives400NamingTheFields() {
 		assertThat(mvc.post().uri("/api/leads").contentType(MediaType.APPLICATION_JSON).content("""
-				{"company": " ", "plannedCv": "%s"}
-				""".formatted("C".repeat(256)))).hasStatus(HttpStatus.BAD_REQUEST)
+				{"company": " "}
+				""")).hasStatus(HttpStatus.BAD_REQUEST)
 			.bodyJson()
 			.extractingPath("$.errors[*].field")
 			.asArray()
-			.containsExactlyInAnyOrder("company", "jobTitle", "plannedCv");
+			.containsExactlyInAnyOrder("company", "jobTitle");
 		verifyNoInteractions(service);
 	}
 

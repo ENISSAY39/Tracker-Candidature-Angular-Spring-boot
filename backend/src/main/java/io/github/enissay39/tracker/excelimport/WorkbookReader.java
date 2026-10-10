@@ -70,10 +70,8 @@ final class WorkbookReader implements AutoCloseable {
 
 	private static final String DISCARD_REASON = "Motif";
 
-	// Longueurs maximales des colonnes varchar du schéma (comme les @Size de JobApplicationRequest)
-	private static final int MAX_SHORT_TEXT_LENGTH = 100;
-
-	private static final int MAX_TEXT_LENGTH = 255;
+	// Seul le nom d'un groupe a une longueur maximale (comme le @Size de JobApplicationRequest)
+	private static final int MAX_GROUP_NAME_LENGTH = 100;
 
 	private static final Map<String, ApplicationStatus> STATUS_BY_LABEL = Arrays.stream(ApplicationStatus.values())
 		.collect(Collectors.toMap(ApplicationStatus::getLabel, Function.identity()));
@@ -143,9 +141,8 @@ final class WorkbookReader implements AutoCloseable {
 			if (row.isEmpty()) {
 				continue;
 			}
-			JobLeadRequest request = new JobLeadRequest(row.required(COMPANY, MAX_TEXT_LENGTH),
-					row.required(JOB_TITLE, MAX_TEXT_LENGTH), row.optional(PLANNED_CV, MAX_TEXT_LENGTH),
-					row.text(REMARK));
+			JobLeadRequest request = new JobLeadRequest(row.required(COMPANY), row.required(JOB_TITLE),
+					row.text(PLANNED_CV), row.text(REMARK));
 			String reason = discarded ? row.text(DISCARD_REASON) : null;
 			if (discarded && reason == null) {
 				throw row.rejected("« " + DISCARD_REASON + " » est vide alors que la piste est écartée.");
@@ -162,11 +159,9 @@ final class WorkbookReader implements AutoCloseable {
 		if (status.requiresSentOn() && sentOn == null) {
 			throw row.rejected("« " + SENT_ON + " » est vide alors que le statut « " + status.getLabel() + " » l'exige.");
 		}
-		return new JobApplicationRequest(row.required(GROUP, MAX_SHORT_TEXT_LENGTH),
-				row.required(COMPANY, MAX_TEXT_LENGTH), row.required(JOB_TITLE, MAX_TEXT_LENGTH), status, sentOn,
-				row.optional(DEADLINE_LABEL, MAX_TEXT_LENGTH), row.date(DEADLINE_DATE), row.text(NOTES),
-				row.optional(START_PERIOD, MAX_SHORT_TEXT_LENGTH), row.optional(CHANNEL, MAX_TEXT_LENGTH),
-				row.optional(CV_SENT, MAX_TEXT_LENGTH));
+		return new JobApplicationRequest(row.groupName(), row.required(COMPANY), row.required(JOB_TITLE), status,
+				sentOn, row.text(DEADLINE_LABEL), row.date(DEADLINE_DATE), row.text(NOTES), row.text(START_PERIOD),
+				row.text(CHANNEL), row.text(CV_SENT));
 	}
 
 	@Override
@@ -287,20 +282,21 @@ final class WorkbookReader implements AutoCloseable {
 			return cell.getLocalDateTimeCellValue().toLocalDate();
 		}
 
-		String required(String heading, int maxLength) {
-			String value = optional(heading, maxLength);
+		String required(String heading) {
+			String value = text(heading);
 			if (value == null) {
 				throw rejected("« " + heading + " » est vide.");
 			}
 			return value;
 		}
 
-		String optional(String heading, int maxLength) {
-			String value = text(heading);
-			if (value != null && value.length() > maxLength) {
-				throw rejected("« " + heading + " » dépasse " + maxLength + " caractères (" + value.length() + ").");
+		String groupName() {
+			String name = required(GROUP);
+			if (name.length() > MAX_GROUP_NAME_LENGTH) {
+				throw rejected("« " + GROUP + " » dépasse " + MAX_GROUP_NAME_LENGTH + " caractères (" + name.length()
+						+ ").");
 			}
-			return value;
+			return name;
 		}
 
 		private Cell cell(String heading) {

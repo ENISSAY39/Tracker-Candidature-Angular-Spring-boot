@@ -115,12 +115,9 @@ class ExcelImportRejectionTest {
 	}
 
 	@Test
-	void aTextTooLongForItsColumn() {
+	void aGroupNameTooLong() {
 		assertRejected(new TestWorkbook().applications(application(1, "G".repeat(101), "À envoyer", null)),
 				SHEET + "ligne 4 : « Groupe » dépasse 100 caractères (101).");
-		assertRejected(new TestWorkbook().applications(application(1, "Groupe Fictif", "Fictif Aéro", "Stagiaire",
-				"À envoyer", null, null, null, null, null, "C".repeat(256), null)),
-				SHEET + "ligne 4 : « Canal » dépasse 255 caractères (256).");
 	}
 
 	@Test

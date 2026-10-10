@@ -2,7 +2,6 @@ import { Component, inject, signal } from '@angular/core';
 import {
   form,
   FormField,
-  maxLength,
   required,
   submit,
   TreeValidationResult,
@@ -21,9 +20,6 @@ import { serverFieldErrors } from '../../../shared/server-errors';
 import { trimToNull } from '../../../shared/text';
 import { JobLead, JobLeadRequest } from '../lead';
 import { LeadsApi } from '../leads-api';
-
-/** Longueur des colonnes `varchar` du schéma (comme les `@Size` de `JobLeadRequest`). */
-const MAX_TEXT_LENGTH = 255;
 
 interface LeadFormModel {
   company: string;
@@ -102,14 +98,7 @@ export class LeadDialog {
 
   protected readonly form = form(this.model, (path) => {
     required(path.company, { message: 'L’entreprise est obligatoire.' });
-    maxLength(path.company, MAX_TEXT_LENGTH, { message: `${MAX_TEXT_LENGTH} caractères au plus.` });
     required(path.jobTitle, { message: 'Le poste est obligatoire.' });
-    maxLength(path.jobTitle, MAX_TEXT_LENGTH, {
-      message: `${MAX_TEXT_LENGTH} caractères au plus.`,
-    });
-    maxLength(path.plannedCv, MAX_TEXT_LENGTH, {
-      message: `${MAX_TEXT_LENGTH} caractères au plus.`,
-    });
   });
 
   protected async save(event: Event): Promise<void> {

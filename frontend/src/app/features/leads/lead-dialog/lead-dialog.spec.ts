@@ -67,14 +67,14 @@ describe('LeadDialog', () => {
     request.flush(
       {
         status: 400,
-        errors: [{ field: 'plannedCv', message: 'la taille doit être comprise entre 0 et 255' }],
+        errors: [{ field: 'company', message: 'ne doit pas être vide' }],
       },
       { status: 400, statusText: 'Bad Request' },
     );
 
     await vi.waitFor(async () => {
       expect(await (await dialogs.getHarness(MatDialogHarness)).getText()).toContain(
-        'la taille doit être comprise entre 0 et 255',
+        'ne doit pas être vide',
       );
     });
     expect(result).toBe('pending');
