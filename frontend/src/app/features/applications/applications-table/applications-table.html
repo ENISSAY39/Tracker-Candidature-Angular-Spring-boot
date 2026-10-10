@@ -1,5 +1,5 @@
 <ul class="counters" aria-label="Compteurs par catégorie">
-  @for (counter of counters(); track counter.label) {
+  @for (counter of counters(); track counter.category) {
     <li>
       <span class="counter-label">{{ counter.label }}</span
       >&nbsp;<span class="counter-count">{{ counter.count }}</span>

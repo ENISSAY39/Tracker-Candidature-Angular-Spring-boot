@@ -14,7 +14,8 @@ describe('DeadlineCell', () => {
   it('shows an overdue date in bold dark red', async () => {
     const cell = await render('2026-10-09');
 
-    expect(cell.textContent?.trim()).toBe('09/10/2026');
+    expect(cell.textContent?.trim()).toBe('09/10/2026 (échéance dépassée)');
+    expect(cell.querySelector('.cdk-visually-hidden')?.textContent).toContain('échéance dépassée');
     expect(cell.style.fontWeight).toBe('bold');
     expect(cell.style.color).toBe('rgb(192, 0, 0)');
   });
@@ -22,6 +23,7 @@ describe('DeadlineCell', () => {
   it('shows a date within three days in bold orange', async () => {
     const cell = await render('2026-10-13');
 
+    expect(cell.querySelector('.cdk-visually-hidden')?.textContent).toContain('échéance proche');
     expect(cell.style.fontWeight).toBe('bold');
     expect(cell.style.color).toBe('rgb(180, 83, 9)');
   });
@@ -30,6 +32,7 @@ describe('DeadlineCell', () => {
     const cell = await render('2026-10-14');
 
     expect(cell.textContent?.trim()).toBe('14/10/2026');
+    expect(cell.querySelector('.cdk-visually-hidden')).toBeNull();
     expect(cell.style.fontWeight).toBe('');
     expect(cell.style.color).toBe('');
   });
