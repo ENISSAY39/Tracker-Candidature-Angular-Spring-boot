@@ -59,10 +59,10 @@ final class WorkbookReader implements AutoCloseable {
 
 	private static final String CV_SENT = "CV envoyé";
 
-	// Longueurs des colonnes varchar du schéma
-	private static final int SHORT_TEXT = 100;
+	// Longueurs maximales des colonnes varchar du schéma (comme les @Size de JobApplicationRequest)
+	private static final int MAX_SHORT_TEXT_LENGTH = 100;
 
-	private static final int TEXT = 255;
+	private static final int MAX_TEXT_LENGTH = 255;
 
 	private static final Map<String, ApplicationStatus> STATUS_BY_LABEL = Arrays.stream(ApplicationStatus.values())
 		.collect(Collectors.toMap(ApplicationStatus::getLabel, Function.identity()));
@@ -206,10 +206,11 @@ final class WorkbookReader implements AutoCloseable {
 				throw rejected("« " + SENT_ON + " » est vide alors que le statut « " + status.getLabel()
 						+ " » l'exige.");
 			}
-			return new JobApplicationRequest(required(GROUP, SHORT_TEXT), required(COMPANY, TEXT),
-					required(JOB_TITLE, TEXT), status, sentOn, optional(DEADLINE_LABEL, TEXT), date(DEADLINE_DATE),
-					text(cell(NOTES)), optional(START_PERIOD, SHORT_TEXT), optional(CHANNEL, TEXT),
-					optional(CV_SENT, TEXT));
+			return new JobApplicationRequest(required(GROUP, MAX_SHORT_TEXT_LENGTH),
+					required(COMPANY, MAX_TEXT_LENGTH), required(JOB_TITLE, MAX_TEXT_LENGTH), status, sentOn,
+					optional(DEADLINE_LABEL, MAX_TEXT_LENGTH), date(DEADLINE_DATE), text(cell(NOTES)),
+					optional(START_PERIOD, MAX_SHORT_TEXT_LENGTH), optional(CHANNEL, MAX_TEXT_LENGTH),
+					optional(CV_SENT, MAX_TEXT_LENGTH));
 		}
 
 		InvalidRequestException rejected(String reason) {

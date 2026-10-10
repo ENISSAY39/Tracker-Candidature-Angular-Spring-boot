@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
@@ -149,7 +150,7 @@ class ExcelImportRejectionTest {
 		assertRejected(workbook.toInputStream(), message);
 	}
 
-	private void assertRejected(java.io.InputStream input, String message) {
+	private void assertRejected(InputStream input, String message) {
 		assertThatThrownBy(() -> service.importWorkbook(input)).isInstanceOf(InvalidRequestException.class)
 			.hasMessage(message);
 		assertThat(applicationRepository.count()).isZero();
