@@ -67,6 +67,8 @@ jobs:
           if echo restaurer | scripts/restore.sh invalid.sql; then exit 1; fi
           test "$(sql 'SELECT name FROM company_group')" = "Groupe fictif"
           docker compose exec -T backup backup-now --check
+          # Le backend voit le dossier des sauvegardes (monté en lecture seule) et y trouve la plus récente
+          curl --fail --silent --show-error http://localhost:8090/api/backup/status | grep -E '"available":true,"lastBackupAt":"[0-9]'
       - name: Show container logs
         if: failure()
         run: docker compose logs

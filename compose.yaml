@@ -51,6 +51,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-tracker}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-tracker}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-tracker}
+      TRACKER_BACKUP_DIRECTORY: /backups
+    volumes:
+      # Lecture seule : l'appli affiche la date de la dernière sauvegarde, elle n'en écrit ni n'en restaure aucune
+      - ${BACKUP_DIR:-./data/backups}:/backups:ro
     # Non publié sur l'hôte : joignable uniquement par le réseau Compose (backend:8080)
     expose:
       - "8080"

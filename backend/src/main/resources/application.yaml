@@ -26,3 +26,9 @@ spring:
 
 server:
   port: 8081
+
+tracker:
+  backup:
+    # Dossier des sauvegardes, lu pour afficher la dernière dans l'appli ; relatif à backend/ en dev local,
+    # /backups en conteneur (TRACKER_BACKUP_DIRECTORY). À surcharger si BACKUP_DIR vise un autre dossier.
+    directory: ../data/backups

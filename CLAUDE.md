@@ -59,6 +59,7 @@ tracker-candidatures/
 │       │   ├── companygroup/       # CompanyGroup + Repository, Service, Controller, dto/
 │       │   ├── joblead/            # JobLead, LeadState + promotion / écart / réévaluation
 │       │   ├── excelimport/        # lecture du classeur (POI) → entités
+│       │   ├── backup/             # BackupStatus… : date de la dernière sauvegarde, lue dans le dossier (lecture seule)
 │       │   └── common/             # GlobalExceptionHandler (ProblemDetail), exceptions métier, config ; ne dépend d'aucun autre package
 │       ├── main/resources/         # application.yaml, db/migration/V1__init_schema.sql, V2__…
 │       └── test/java/…             # même découpage que main
@@ -68,7 +69,7 @@ tracker-candidatures/
         ├── index.html  main.ts  styles.scss
         └── app/
             ├── app.ts  app.html  app.config.ts  app.routes.ts
-            ├── core/               # layout (navigation), intercepteur d'erreurs HTTP, locale fr
+            ├── core/               # layout (navigation), backup/ (indicateur de dernière sauvegarde), intercepteur d'erreurs HTTP, locale fr
             ├── shared/             # status-badge, deadline-cell, confirm-dialog, utilitaires de date
             └── features/           # un dossier par écran, routes en lazy loading
                 ├── applications/   # liste (table, compteurs, filtres), fiche, formulaire, applications-api.ts
@@ -151,6 +152,7 @@ GET /groups · PUT /groups/{id} (renommer) · DELETE /groups/{id} (409 si le gro
 GET /leads?state= · POST /leads · PUT /leads/{id} · DELETE /leads/{id}
 POST /leads/{id}/promote {groupName} · POST /leads/{id}/discard {reason} · POST /leads/{id}/restore
 POST /import/excel                multipart `file`, option `?mode=replace`
+GET /backup/status                {available, lastBackupAt (instant ISO 8601)} ; dossier absent ou illisible → available=false, jamais 500
 ```
 
 - Volume faible (< 1 000 lignes) : `GET /applications` renvoie tout, **sans pagination** ; tri et filtres côté front.
@@ -192,9 +194,9 @@ POST /import/excel                multipart `file`, option `?mode=replace`
 
 - Le classeur et la base contiennent mes **données personnelles réelles** : `data/`, `.env`, tout fichier `*.xlsx` et tout export restent hors Git. Tests et exemples : données fictives uniquement.
 - Ne jamais lancer `docker compose down -v`, `docker volume rm`, `DROP`, `TRUNCATE` ni `flyway clean` sur la base de dev sans mon accord explicite. Les tests passent uniquement par Testcontainers.
-- `compose.yaml` : quatre services **sans profil**, `docker compose up -d` démarre tout. `postgres` (image `postgres:18`, pas de Dockerfile, volume nommé monté sur `/var/lib/postgresql` — depuis PostgreSQL 18, ce n'est plus `/var/lib/postgresql/data` — publié sur `127.0.0.1:5432`), `backup` (image `postgres:18`, aucun port publié, `scripts/backup.sh` monté en `backup-now`), `backend` (Dockerfile multi-étapes, non publié sur l'hôte) et `frontend` (Dockerfile + nginx, publié sur `127.0.0.1:8090`, proxy `/api` → `backend:8080`). Ports publiés sur `127.0.0.1` seulement. Base, utilisateur et mot de passe de dev : `tracker`, surchargeables par `.env` (ignoré par Git ; seul `.env.example` est versionné).
-- **Sauvegarde** (ADR 0003) : le service `backup` écrit `tracker-AAAA-MM-JJ_HHMM.sql` (`…_HHMMSS.sql` si la minute est déjà prise ; `pg_dump --clean --if-exists`) dans `BACKUP_DIR` (défaut `./data/backups/`) dès que la plus récente a plus de 24 h, vérifié au démarrage puis toutes les heures (nouvelle tentative à chaque passage après un échec) ; il garde `BACKUP_KEEP` fichiers (défaut 90) et passe `unhealthy` au-delà de 48 h sans sauvegarde ou après un échec. Avant un import en `mode=replace` : `docker compose exec backup backup-now`. Ne jamais lancer `scripts/restore.sh` ni supprimer de fichier de `data/backups/` sans mon accord explicite.
-- **CI** (`.github/workflows/ci.yml`, GitHub Actions) : déclenchée sur tout push et sur les PR vers `main`. Job backend (`setup-java` Temurin 25, cache Maven, `./mvnw -B verify`), job frontend (`setup-node` 24, cache npm, `npm ci`, `npx ng test --no-watch`, `npx ng build`), job Docker (`docker compose build` puis test de fumée : `up -d`, attente de `http://localhost:8090`, sauvegarde puis restauration de données fictives, `down`). Actions épinglées par version majeure, aucun secret, données fictives uniquement. Pas de CD : aucune image publiée, aucun déploiement.
+- `compose.yaml` : quatre services **sans profil**, `docker compose up -d` démarre tout. `postgres` (image `postgres:18`, pas de Dockerfile, volume nommé monté sur `/var/lib/postgresql` — depuis PostgreSQL 18, ce n'est plus `/var/lib/postgresql/data` — publié sur `127.0.0.1:5432`), `backup` (image `postgres:18`, aucun port publié, `scripts/backup.sh` monté en `backup-now`), `backend` (Dockerfile multi-étapes, non publié sur l'hôte, dossier des sauvegardes monté en lecture seule sur `/backups`) et `frontend` (Dockerfile + nginx, publié sur `127.0.0.1:8090`, proxy `/api` → `backend:8080`). Ports publiés sur `127.0.0.1` seulement. Base, utilisateur et mot de passe de dev : `tracker`, surchargeables par `.env` (ignoré par Git ; seul `.env.example` est versionné).
+- **Sauvegarde** (ADR 0003) : le service `backup` écrit `tracker-AAAA-MM-JJ_HHMM.sql` (`…_HHMMSS.sql` si la minute est déjà prise ; `pg_dump --clean --if-exists`) dans `BACKUP_DIR` (défaut `./data/backups/`) dès que la plus récente a plus de 24 h, vérifié au démarrage puis toutes les heures (nouvelle tentative à chaque passage après un échec) ; il garde `BACKUP_KEEP` fichiers (défaut 90) et passe `unhealthy` au-delà de 48 h sans sauvegarde ou après un échec. La barre de titre affiche la dernière sauvegarde (`GET /api/backup/status`, date de modification du fichier le plus récent dans `tracker.backup.directory` : `../data/backups` en dev local, `/backups` en conteneur) et passe en alerte au-delà de 48 h ou sans aucune sauvegarde ; dossier indisponible : pas d'alerte. L'appli ne sauvegarde ni ne restaure jamais. Avant un import en `mode=replace` : `docker compose exec backup backup-now`. Ne jamais lancer `scripts/restore.sh` ni supprimer de fichier de `data/backups/` sans mon accord explicite.
+- **CI** (`.github/workflows/ci.yml`, GitHub Actions) : déclenchée sur tout push et sur les PR vers `main`. Job backend (`setup-java` Temurin 25, cache Maven, `./mvnw -B verify`), job frontend (`setup-node` 24, cache npm, `npm ci`, `npx ng test --no-watch`, `npx ng build`), job Docker (`docker compose build` puis test de fumée : `up -d`, attente de `http://localhost:8090`, sauvegarde puis restauration de données fictives, lecture de `/api/backup/status`, `down`). Actions épinglées par version majeure, aucun secret, données fictives uniquement. Pas de CD : aucune image publiée, aucun déploiement.
 - Aucune authentification (usage local) : ne rien exposer hors de `127.0.0.1`.
 - Avancer par tranches verticales courtes (migration → entité → service → contrôleur → tests → écran) ; un commit par tranche, au format Conventional Commits.
 - **Workflow Git** (jamais de commit ni de push sur `main`, y compris pour la documentation) :

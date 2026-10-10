@@ -29,6 +29,7 @@ L'application est sur **http://localhost:8090**.
 - Le backend n'est pas publié sur l'hôte.
 - La base est publiée sur `127.0.0.1:5432`.
 - Le service `backup` sauvegarde la base dans `data/backups/` (voir « Sauvegarde et restauration ») ; il ne publie aucun port.
+- La barre de titre affiche la date de la dernière sauvegarde.
 
 Arrêt :
 
@@ -80,6 +81,7 @@ La base est la seule source de vérité : le classeur n'est qu'une photo du jour
 - **Automatique** : au démarrage, puis toutes les heures, une sauvegarde est faite si la plus récente a plus de 24 h (ou s'il n'y en a aucune). Pas d'heure fixe : le poste n'a pas besoin d'être allumé en continu.
 - **Fichiers** : `data/backups/tracker-AAAA-MM-JJ_HHMM.sql` (dossier ignoré par Git), en SQL lisible (`pg_dump --clean --if-exists`). Si la minute est déjà prise, les secondes sont ajoutées (`…_HHMMSS.sql`). Un dump n'apparaît dans le dossier qu'une fois complet.
 - **Rétention** : les `BACKUP_KEEP` fichiers les plus récents sont gardés (90 par défaut) ; les plus anciens sont supprimés après une sauvegarde réussie.
+- **Dans l'appli** : la barre de titre affiche « Dernière sauvegarde : hier 14:32 ». L'indicateur passe en alerte quand la plus récente a plus de 48 h ou qu'il n'y en a aucune ; il est relu toutes les heures. Le backend lit pour cela le dossier des sauvegardes, monté en lecture seule (`GET /api/backup/status`) : l'appli ne sauvegarde et ne restaure rien, ces actions restent des commandes.
 - **Surveillance** : `docker compose ps` affiche `backup` en `unhealthy` si la sauvegarde la plus récente a plus de 48 h ou si la dernière tentative a échoué ; le détail est dans `docker compose logs backup`.
 
 Redémarrer l'appli ne force pas une sauvegarde : tant que la plus récente a moins de 24 h, `docker compose up -d` ou un redémarrage du poste ne crée aucun fichier. Ce qui est saisi entre-temps n'est donc sauvegardé que le lendemain.
@@ -126,6 +128,7 @@ cd frontend && npm ci && npm start            # http://localhost:4200, proxy /ap
 - L'API locale écoute sur **8081**, le port 8080 étant pris sur le poste de dev ; dans son conteneur, elle écoute sur 8080.
 - `spring-boot:run` et `npm start` sont bloquants : un terminal chacun.
 - Le proxy (`frontend/proxy.conf.json`) évite toute configuration CORS.
+- L'API locale lit les sauvegardes dans `../data/backups` (propriété `tracker.backup.directory`). Si `BACKUP_DIR` vise un autre dossier, donnez-le aussi à l'API : `TRACKER_BACKUP_DIRECTORY=/chemin ./mvnw spring-boot:run`. Dossier absent : la barre de titre affiche « Sauvegarde : état indisponible », sans alerte.
 
 Tests et build :
 
@@ -156,9 +159,9 @@ Les tests n'utilisent que des données fictives, dont des classeurs générés e
 ## Architecture en bref
 
 - **Backend** (`backend/`) : un package par fonctionnalité.
-  - Packages : `jobapplication`, `companygroup`, `joblead`, `excelimport`, ainsi que `common` pour les erreurs `ProblemDetail` et les exceptions métier.
+  - Packages : `jobapplication`, `companygroup`, `joblead`, `excelimport`, `backup` (date de la dernière sauvegarde, en lecture seule), ainsi que `common` pour les erreurs `ProblemDetail` et les exceptions métier.
 - **API REST** sous `/api`, en JSON, dates au format `yyyy-MM-dd`, sans pagination (moins de 1 000 lignes).
-- **Frontend** (`frontend/`) : `core/` (mise en page, intercepteur d'erreurs, locale fr), `shared/` (badges, échéances, dialogue de confirmation) et un dossier par écran sous `features/`.
+- **Frontend** (`frontend/`) : `core/` (mise en page, indicateur de sauvegarde, intercepteur d'erreurs, locale fr), `shared/` (badges, échéances, dialogue de confirmation) et un dossier par écran sous `features/`.
   - Écrans : `applications`, `groups`, `leads`, `import`, chargés à la demande.
 
 Le détail du modèle de données, des règles métier, de l'API et des conventions de code est dans `CLAUDE.md`.
@@ -169,7 +172,7 @@ GitHub Actions (`.github/workflows/ci.yml`), sur chaque push et sur les PR vers 
 
 - **backend** : `./mvnw -B verify` (Temurin 25, Testcontainers) ;
 - **frontend** : `npm ci`, `npx ng test --no-watch`, `npx ng build` (Node 24) ;
-- **docker** : `docker compose build`, `docker compose up -d`, attente de `http://localhost:8090`, sauvegarde puis restauration de données fictives, puis `docker compose down`.
+- **docker** : `docker compose build`, `docker compose up -d`, attente de `http://localhost:8090`, sauvegarde puis restauration de données fictives, lecture de l'état des sauvegardes par l'API, puis `docker compose down`.
 
 Il n'y a pas de CD : aucune image n'est publiée et rien n'est déployé. Aucun secret, données fictives uniquement.
 

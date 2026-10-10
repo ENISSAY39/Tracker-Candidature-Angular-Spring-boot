@@ -18,4 +18,4 @@ Le poste n'est pas allumé en continu et l'appli ne tourne que quand Docker tour
 - Jusqu'à une journée de saisie peut être perdue ; une sauvegarde à la demande avant toute opération risquée réduit cette fenêtre.
 - La restauration rejoue le dump dans une seule transaction : un fichier invalide laisse la base intacte. Elle n'est jamais lancée par l'appli ni par un agent sans accord explicite.
 - Le nom des fichiers est `tracker-AAAA-MM-JJ_HHMM.sql` ; quand la minute est déjà prise (sauvegarde à la demande, sauvegarde de sécurité d'une restauration), les secondes sont ajoutées (`…_HHMMSS.sql`) pour ne jamais écraser une sauvegarde existante.
-- L'état de la sauvegarde n'est visible que par `docker compose ps` ; un indicateur dans l'appli est traité à part.
+- L'état de la sauvegarde est visible par `docker compose ps` et, dans l'appli, par la date de la dernière sauvegarde en barre de titre : le backend lit le dossier monté en lecture seule, sans jamais sauvegarder ni restaurer.
