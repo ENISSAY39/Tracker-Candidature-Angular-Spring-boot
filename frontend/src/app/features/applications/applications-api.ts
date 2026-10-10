@@ -2,7 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
 import { Observable, shareReplay } from 'rxjs';
 import { Status } from '../../shared/status';
-import { CompanyGroup, JobApplication, JobApplicationRequest } from './application';
+import {
+  CompanyGroup,
+  JobApplication,
+  JobApplicationRequest,
+  StatusChangeRequest,
+} from './application';
 
 @Service()
 export class ApplicationsApi {
@@ -25,6 +30,10 @@ export class ApplicationsApi {
 
   update(id: number, request: JobApplicationRequest): Observable<JobApplication> {
     return this.http.put<JobApplication>(`/api/applications/${id}`, request);
+  }
+
+  changeStatus(id: number, request: StatusChangeRequest): Observable<JobApplication> {
+    return this.http.patch<JobApplication>(`/api/applications/${id}/status`, request);
   }
 
   delete(id: number): Observable<void> {

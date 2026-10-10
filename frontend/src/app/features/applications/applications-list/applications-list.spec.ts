@@ -17,9 +17,7 @@ const STATUSES: Status[] = [
     label: 'Entretien',
     order: 2,
     requiresSentOn: true,
-
     closed: false,
-
     category: { code: 'INTERVIEW', label: 'Entretien', order: 2 },
   },
   {
@@ -27,9 +25,7 @@ const STATUSES: Status[] = [
     label: 'En examen',
     order: 3,
     requiresSentOn: true,
-
     closed: false,
-
     category: { code: 'OPENED', label: 'Dossier ouvert par le recruteur', order: 3 },
   },
   {
@@ -37,9 +33,7 @@ const STATUSES: Status[] = [
     label: 'Sélection',
     order: 6,
     requiresSentOn: true,
-
     closed: false,
-
     category: { code: 'OPENED', label: 'Dossier ouvert par le recruteur', order: 3 },
   },
   {
@@ -47,9 +41,7 @@ const STATUSES: Status[] = [
     label: 'En attente',
     order: 7,
     requiresSentOn: true,
-
     closed: false,
-
     category: { code: 'PENDING', label: 'En attente', order: 4 },
   },
 ];

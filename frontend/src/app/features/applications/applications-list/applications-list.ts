@@ -1,4 +1,4 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, input, output, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -47,6 +47,8 @@ export class ApplicationsList {
   readonly statuses = input.required<Status[]>();
   /** Masqué sur la page d'un groupe, où toutes les candidatures ont le même groupe. */
   readonly showGroupFilter = input(true);
+  /** Candidature dont le statut vient d'être changé, telle que renvoyée par le serveur. */
+  readonly statusChanged = output<JobApplication>();
 
   /** Jour de référence du filtre d'échéance, lu une fois à l'affichage. */
   private readonly today = today();

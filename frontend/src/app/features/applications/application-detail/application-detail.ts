@@ -11,14 +11,14 @@ import { filter, forkJoin, switchMap } from 'rxjs';
 import { openConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { today } from '../../../shared/dates';
 import { DeadlineCell } from '../../../shared/deadline-cell/deadline-cell';
-import { StatusBadge } from '../../../shared/status-badge/status-badge';
 import { isClosed } from '../../../shared/status';
 import { JobApplication } from '../application';
 import { ApplicationsApi } from '../applications-api';
+import { StatusMenu } from '../status-menu/status-menu';
 
 /** Fiche d'une candidature : tous ses champs, notes complètes, suppression après confirmation. */
 @Component({
-  imports: [DatePipe, DeadlineCell, MatButtonModule, MatProgressBarModule, RouterLink, StatusBadge],
+  imports: [DatePipe, DeadlineCell, MatButtonModule, MatProgressBarModule, RouterLink, StatusMenu],
   selector: 'app-application-detail',
   styleUrl: './application-detail.scss',
   templateUrl: './application-detail.html',
@@ -57,6 +57,11 @@ export class ApplicationDetail {
     const status = this.status();
     return status !== undefined && isClosed(status);
   });
+
+  /** Candidature renvoyée par le serveur après un changement de statut. */
+  protected applyStatusChange(updated: JobApplication): void {
+    this.data.update((loaded) => loaded && { ...loaded, application: updated });
+  }
 
   protected delete(application: JobApplication): void {
     openConfirmDialog(this.dialog, {

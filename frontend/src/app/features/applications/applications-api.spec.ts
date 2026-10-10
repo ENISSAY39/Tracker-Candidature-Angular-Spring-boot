@@ -55,9 +55,7 @@ describe('ApplicationsApi', () => {
         label: 'En attente',
         order: 7,
         requiresSentOn: true,
-
         closed: false,
-
         category: { code: 'PENDING', label: 'En attente', order: 4 },
       },
     ];
@@ -137,5 +135,22 @@ describe('ApplicationsApi', () => {
     request.flush([{ id: 1, name: 'Groupe Fictif' }]);
 
     expect(await result).toEqual([{ id: 1, name: 'Groupe Fictif' }]);
+  });
+
+  it('changes the status with PATCH /api/applications/{id}/status', async () => {
+    const result = firstValueFrom(
+      api.changeStatus(9, { status: 'PENDING', sentOn: '2026-10-04', deadlineDate: '2026-10-18' }),
+    );
+
+    const request = backend.expectOne('/api/applications/9/status');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({
+      status: 'PENDING',
+      sentOn: '2026-10-04',
+      deadlineDate: '2026-10-18',
+    });
+    request.flush({ id: 9, status: 'PENDING' });
+
+    expect(await result).toMatchObject({ id: 9, status: 'PENDING' });
   });
 });

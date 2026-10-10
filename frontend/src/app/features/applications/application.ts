@@ -40,3 +40,10 @@ export interface CompanyGroup {
   id: number;
   name: string;
 }
+
+/** Corps du changement rapide de statut ; une date absente garde sa valeur côté serveur. */
+export interface StatusChangeRequest {
+  status: string;
+  sentOn?: string;
+  deadlineDate?: string;
+}

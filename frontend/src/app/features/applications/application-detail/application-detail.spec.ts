@@ -5,6 +5,7 @@ import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { TestBed } from '@angular/core/testing';
 import { MatButtonHarness } from '@angular/material/button/testing';
 import { MatDialogHarness } from '@angular/material/dialog/testing';
+import { MatMenuHarness } from '@angular/material/menu/testing';
 import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { Status } from '../../../shared/status';
@@ -14,13 +15,19 @@ import { ApplicationDetail } from './application-detail';
 
 const STATUSES: Status[] = [
   {
+    code: 'INTERVIEW',
+    label: 'Entretien',
+    order: 2,
+    requiresSentOn: true,
+    closed: false,
+    category: { code: 'INTERVIEW', label: 'Entretien', order: 2 },
+  },
+  {
     code: 'PENDING',
     label: 'En attente',
     order: 7,
     requiresSentOn: true,
-
     closed: false,
-
     category: { code: 'PENDING', label: 'En attente', order: 4 },
   },
 ];
@@ -112,6 +119,22 @@ describe('ApplicationDetail', () => {
     expect(page.querySelector('a[href="/applications/5/edit"]')?.textContent?.trim()).toBe(
       'Modifier',
     );
+  });
+
+  it('changes the status from the badge and shows the answer of the server', async () => {
+    const page = await open(5, APPLICATION);
+    const menu = await TestbedHarnessEnvironment.loader(harness.fixture).getHarness(MatMenuHarness);
+
+    await menu.open();
+    await menu.clickItem({ text: 'Entretien' });
+    const request = await vi.waitFor(() => backend.expectOne('/api/applications/5/status'));
+    expect(request.request.body).toEqual({ status: 'INTERVIEW' });
+    request.flush({ ...APPLICATION, status: 'INTERVIEW' });
+
+    await vi.waitFor(async () => {
+      await harness.fixture.whenStable();
+      expect(page.querySelector('app-status-badge')?.textContent?.trim()).toBe('Entretien');
+    });
   });
 
   it('shows the whole notes with their line breaks', async () => {

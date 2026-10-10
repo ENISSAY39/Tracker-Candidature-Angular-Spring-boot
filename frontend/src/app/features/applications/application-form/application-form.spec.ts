@@ -2,29 +2,18 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { HarnessLoader } from '@angular/cdk/testing';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
-import { registerLocaleData } from '@angular/common';
-import localeFr from '@angular/common/locales/fr';
-import { LOCALE_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatButtonHarness } from '@angular/material/button/testing';
-import {
-  DateAdapter,
-  MAT_DATE_FORMATS,
-  MAT_DATE_LOCALE,
-  MAT_NATIVE_DATE_FORMATS,
-} from '@angular/material/core';
 import { MatDatepickerInputHarness } from '@angular/material/datepicker/testing';
 import { MatInputHarness } from '@angular/material/input/testing';
 import { MatSelectHarness } from '@angular/material/select/testing';
 import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { FrenchDateAdapter } from '../../../core/french-date-adapter';
+import { provideFrenchLocale } from '../../../core/french-locale';
 import { Status } from '../../../shared/status';
 import { JobApplication } from '../application';
 import { APPLICATIONS_ROUTES } from '../applications.routes';
 import { ApplicationForm } from './application-form';
-
-registerLocaleData(localeFr);
 
 function status(
   code: string,
@@ -81,10 +70,7 @@ describe('ApplicationForm', () => {
           [{ path: 'applications', children: APPLICATIONS_ROUTES }],
           withComponentInputBinding(),
         ),
-        { provide: LOCALE_ID, useValue: 'fr-FR' },
-        { provide: MAT_DATE_LOCALE, useValue: 'fr-FR' },
-        { provide: DateAdapter, useClass: FrenchDateAdapter },
-        { provide: MAT_DATE_FORMATS, useValue: MAT_NATIVE_DATE_FORMATS },
+        provideFrenchLocale(),
       ],
     });
     backend = TestBed.inject(HttpTestingController);
