@@ -37,7 +37,7 @@ public class ExcelImportService {
 		if (applicationService.hasApplications()) {
 			throw new ConflictException("La base contient déjà des candidatures : l'import est refusé.");
 		}
-		Workbook workbook = read(input);
+		ParsedWorkbook workbook = read(input);
 		long groupsBefore = groupService.count();
 		for (ImportedApplication application : workbook.applications()) {
 			applicationService.importApplication(application.number(), application.request());
@@ -51,16 +51,17 @@ public class ExcelImportService {
 	}
 
 	// Tout le classeur est lu et validé avant la première écriture
-	private static Workbook read(InputStream input) {
+	private static ParsedWorkbook read(InputStream input) {
 		try (WorkbookReader reader = WorkbookReader.open(input)) {
 			List<ImportedApplication> applications = reader.readApplications();
 			List<ImportedLead> leads = new ArrayList<>(reader.readLeads(WorkbookReader.TO_EVALUATE_SHEET, false));
 			leads.addAll(reader.readLeads(WorkbookReader.DISCARDED_SHEET, true));
-			return new Workbook(applications, leads);
+			return new ParsedWorkbook(applications, leads);
 		}
 	}
 
-	private record Workbook(List<ImportedApplication> applications, List<ImportedLead> leads) {
+	/** Contenu du classeur, entièrement lu et validé. */
+	private record ParsedWorkbook(List<ImportedApplication> applications, List<ImportedLead> leads) {
 	}
 
 }

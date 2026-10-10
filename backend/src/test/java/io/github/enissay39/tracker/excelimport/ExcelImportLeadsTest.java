@@ -105,6 +105,8 @@ class ExcelImportLeadsTest {
 	void rejectsAWorkbookWithoutALeadSheet() {
 		assertRejected(new TestWorkbook().applications().without(TestWorkbook.DISCARDED_SHEET),
 				"La feuille « Abandonnées » est introuvable dans le classeur.");
+		assertRejected(new TestWorkbook().applications().without(TestWorkbook.TO_EVALUATE_SHEET),
+				"La feuille « À évaluer » est introuvable dans le classeur.");
 	}
 
 	private void assertRejected(TestWorkbook workbook, String message) {
