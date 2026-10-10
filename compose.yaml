@@ -18,6 +18,32 @@ services:
       timeout: 5s
       retries: 10
 
+  backup:
+    # Même image que le serveur : même version de pg_dump et de psql. Aucun port publié.
+    image: postgres:18
+    command: ["backup-now", "--loop"]
+    environment:
+      PGHOST: postgres
+      PGDATABASE: ${POSTGRES_DB:-tracker}
+      PGUSER: ${POSTGRES_USER:-tracker}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-tracker}
+      BACKUP_KEEP: ${BACKUP_KEEP:-90}
+      # Heure locale dans le nom des fichiers
+      TZ: Europe/Paris
+    volumes:
+      - ./scripts/backup.sh:/usr/local/bin/backup-now:ro
+      - ${BACKUP_DIR:-./data/backups}:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # unhealthy si la sauvegarde la plus récente a plus de 48 h ou si la dernière tentative a échoué
+    healthcheck:
+      test: ["CMD", "backup-now", "--check"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 1m
+
   backend:
     build: ./backend
     environment:

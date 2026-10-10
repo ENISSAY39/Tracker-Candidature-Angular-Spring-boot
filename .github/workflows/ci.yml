@@ -49,6 +49,24 @@ jobs:
       # Test de fumée : le front (nginx) doit répondre sur le port publié
       - name: Wait for http://localhost:8090
         run: curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors --output /dev/null http://localhost:8090
+      # Sauvegarde puis restauration, sur des données fictives ; le schéma existe dès que l'API répond
+      - name: Back up, then restore
+        run: |
+          sql() { docker compose exec -T backup psql -qAt -c "$1"; }
+          curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors --output /dev/null http://localhost:8090/api/statuses
+          # La sauvegarde automatique du premier démarrage
+          timeout 60 sh -c 'until ls data/backups/tracker-*.sql >/dev/null 2>&1; do sleep 1; done'
+          sql "INSERT INTO company_group (name) VALUES ('Groupe fictif')"
+          docker compose exec -T backup backup-now
+          backup=$(LC_ALL=C ls data/backups/tracker-*.sql | tail -n 1)
+          sql "DELETE FROM company_group"
+          echo restaurer | scripts/restore.sh "$backup"
+          test "$(sql 'SELECT name FROM company_group')" = "Groupe fictif"
+          # Un fichier invalide est refusé et laisse la base intacte
+          echo 'DROP TABLE company_group; CECI NEST PAS DU SQL;' > invalid.sql
+          if echo restaurer | scripts/restore.sh invalid.sql; then exit 1; fi
+          test "$(sql 'SELECT name FROM company_group')" = "Groupe fictif"
+          docker compose exec -T backup backup-now --check
       - name: Show container logs
         if: failure()
         run: docker compose logs

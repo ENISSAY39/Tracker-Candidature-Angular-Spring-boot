@@ -12,15 +12,15 @@ Le classeur se charge en une fois depuis l'écran **Import**.
 >
 > - **Aucune authentification** : l'application est faite pour un usage local. Les ports sont publiés sur `127.0.0.1` seulement ; ne les exposez pas sur le réseau.
 > - **Données personnelles** : `data/` (classeur, sauvegardes), `.env` et tout fichier `*.xlsx` restent hors Git (`.gitignore`). Ne les commitez pas, ne les collez pas dans une issue.
-> - **Commandes qui détruisent les données** : `docker compose down -v`, `docker volume rm tracker_postgres-data`, `dropdb`, `DROP`, `TRUNCATE`, `flyway clean`, ainsi qu'un import en mode remplacement. Faites une sauvegarde avant.
+> - **Commandes qui détruisent les données** : `docker compose down -v`, `docker volume rm tracker_postgres-data`, `dropdb`, `DROP`, `TRUNCATE`, `flyway clean`, ainsi qu'un import en mode remplacement. Faites une sauvegarde avant : `docker compose exec backup backup-now`.
 
 ## Démarrage en conteneurs
 
 Prérequis : Docker avec Docker Compose (Docker Desktop sous Windows). Rien d'autre à installer.
 
 ```bash
-docker compose up -d        # construit puis démarre postgres, backend et frontend
-docker compose ps           # les trois services doivent être « Up » (postgres « healthy »)
+docker compose up -d        # construit puis démarre postgres, backup, backend et frontend
+docker compose ps           # les quatre services doivent être « Up » (postgres et backup « healthy »)
 ```
 
 L'application est sur **http://localhost:8090**.
@@ -28,6 +28,7 @@ L'application est sur **http://localhost:8090**.
 - Le frontend (nginx) relaie `/api` vers le backend.
 - Le backend n'est pas publié sur l'hôte.
 - La base est publiée sur `127.0.0.1:5432`.
+- Le service `backup` sauvegarde la base dans `data/backups/` (voir « Sauvegarde et restauration ») ; il ne publie aucun port.
 
 Arrêt :
 
@@ -40,7 +41,7 @@ Les données vivent dans le volume nommé `tracker_postgres-data` : elles surviv
 
 ## Configuration
 
-Base, utilisateur et mot de passe valent `tracker` par défaut. Pour les changer, copiez le modèle et éditez-le avant le premier démarrage :
+Base, utilisateur et mot de passe valent `tracker` par défaut. Pour changer ces valeurs ou celles des sauvegardes, copiez le modèle et éditez-le avant le premier démarrage :
 
 ```bash
 cp .env.example .env
@@ -51,8 +52,10 @@ cp .env.example .env
 | `POSTGRES_DB` | `tracker` | Nom de la base |
 | `POSTGRES_USER` | `tracker` | Utilisateur PostgreSQL |
 | `POSTGRES_PASSWORD` | `tracker` | Mot de passe |
+| `BACKUP_DIR` | `./data/backups` | Dossier de l'hôte où vont les sauvegardes |
+| `BACKUP_KEEP` | `90` | Nombre de sauvegardes conservées |
 
-Docker Compose lit `.env` à la racine ; le backend lancé en local aussi (`spring.config.import`). Si vous changez ces valeurs, adaptez `-U tracker` et le nom de base dans les commandes de sauvegarde ci-dessous. Changer `POSTGRES_*` après la création du volume ne modifie pas une base déjà initialisée.
+Docker Compose lit `.env` à la racine ; le backend lancé en local aussi (`spring.config.import`). Le service `backup` lit les mêmes variables `POSTGRES_*` que la base. Changer `POSTGRES_*` après la création du volume ne modifie pas une base déjà initialisée.
 
 ## Import du classeur
 
@@ -67,31 +70,37 @@ Règles :
   - « À évaluer » et « Abandonnées » donnent les pistes, à évaluer ou écartées ;
   - les autres feuilles sont ignorées.
 - **Numéros** : ceux du classeur sont conservés ; la candidature créée ensuite prend le numéro suivant le plus grand.
-- **Base déjà remplie** : si la base contient au moins une candidature, l'import est refusé. L'écran propose alors le **mode remplacement**, également disponible par la case « Remplacer les données existantes ». Ce mode supprime candidatures, pistes et groupes puis recharge le classeur, dans une seule transaction : si le classeur est refusé, rien n'est effacé. Il détruit tout ce qui a été saisi dans l'application depuis le dernier import : **faites une sauvegarde avant** (ADR 0002).
+- **Base déjà remplie** : si la base contient au moins une candidature, l'import est refusé. L'écran propose alors le **mode remplacement**, également disponible par la case « Remplacer les données existantes ». Ce mode supprime candidatures, pistes et groupes puis recharge le classeur, dans une seule transaction : si le classeur est refusé, rien n'est effacé. Il détruit tout ce qui a été saisi dans l'application depuis le dernier import : **faites une sauvegarde avant** avec `docker compose exec backup backup-now` (ADR 0002) ; le dialogue de confirmation le rappelle.
 - **Taille** : 10 Mo au plus.
 
 ## Sauvegarde et restauration
 
-La base tourne dans le conteneur `postgres` ; les commandes passent par `docker compose exec`, depuis la racine du dépôt. Les sauvegardes vont dans `data/`, ignoré par Git.
+La base est la seule source de vérité : le classeur n'est qu'une photo du jour de l'import. Le service `backup` (image `postgres:18`) la sauvegarde tout seul dès que l'appli tourne (ADR 0003).
 
-Sauvegarde :
+- **Automatique** : au démarrage, puis toutes les heures, une sauvegarde est faite si la plus récente a plus de 24 h (ou s'il n'y en a aucune). Pas d'heure fixe : le poste n'a pas besoin d'être allumé en continu.
+- **Fichiers** : `data/backups/tracker-AAAA-MM-JJ_HHMM.sql` (dossier ignoré par Git), en SQL lisible (`pg_dump --clean --if-exists`). Si la minute est déjà prise, les secondes sont ajoutées (`…_HHMMSS.sql`). Un dump n'apparaît dans le dossier qu'une fois complet.
+- **Rétention** : les `BACKUP_KEEP` fichiers les plus récents sont gardés (90 par défaut) ; les plus anciens sont supprimés après une sauvegarde réussie.
+- **Surveillance** : `docker compose ps` affiche `backup` en `unhealthy` si la sauvegarde la plus récente a plus de 48 h ou si la dernière tentative a échoué ; le détail est dans `docker compose logs backup`.
 
-```bash
-mkdir -p data
-docker compose exec -T postgres pg_dump -U tracker tracker > data/backup-$(date +%F).sql
-```
-
-Restauration : elle **remplace** tout le contenu de la base par celui de la sauvegarde. Le backend doit être arrêté pour libérer la base.
+Sauvegarde à la demande, à lancer **avant un import en mode remplacement** ou toute opération risquée :
 
 ```bash
-docker compose stop backend
-docker compose exec -T postgres dropdb -U tracker tracker
-docker compose exec -T postgres createdb -U tracker tracker
-docker compose exec -T postgres psql -q -U tracker -d tracker < data/backup-AAAA-MM-JJ.sql
-docker compose start backend
+docker compose exec backup backup-now
 ```
 
-Au redémarrage, Flyway retrouve son historique dans la sauvegarde et la numérotation reprend là où en était la séquence sauvegardée.
+Restauration (Git Bash, depuis la racine du dépôt) : elle **remplace** tout le contenu de la base par celui du fichier.
+
+```bash
+scripts/restore.sh data/backups/tracker-AAAA-MM-JJ_HHMM.sql
+```
+
+Le script demande de taper « restaurer », fait d'abord une sauvegarde de sécurité de l'état actuel, puis rejoue le fichier en une seule transaction : si le fichier est invalide, rien n'est modifié. Flyway retrouve son historique dans la sauvegarde et la numérotation reprend là où en était la séquence sauvegardée. Rechargez ensuite la page de l'application.
+
+Limites acceptées :
+
+- avec le dossier par défaut, les sauvegardes sont sur le même disque que la base ; pointez `BACKUP_DIR` vers un autre disque ou un dossier synchronisé pour vous protéger d'une panne ;
+- les fichiers `.sql` contiennent les données personnelles en clair, sans chiffrement ;
+- jusqu'à une journée de saisie peut être perdue en cas d'incident.
 
 ## Développement local
 
@@ -101,10 +110,10 @@ Prérequis : JDK 25, Node.js 24 LTS (≥ 24.15) et Docker.
 - Sous Windows (Git Bash) : `export JAVA_HOME="/c/Program Files/Java/jdk-25.0.4.1"; export PATH="$JAVA_HOME/bin:$PATH"`.
 - PowerShell : `.\mvnw.cmd` à la place de `./mvnw`.
 
-En développement, ne démarrez que la base, pour ne pas entrer en conflit de ports avec les conteneurs `backend` et `frontend` :
+En développement, ne démarrez que la base et sa sauvegarde, pour ne pas entrer en conflit de ports avec les conteneurs `backend` et `frontend` :
 
 ```bash
-docker compose up -d postgres                 # base seule → 127.0.0.1:5432
+docker compose up -d postgres backup          # base → 127.0.0.1:5432, et sa sauvegarde automatique (aucun port)
 cd backend && ./mvnw spring-boot:run          # API → http://localhost:8081
 cd frontend && npm ci && npm start            # http://localhost:4200, proxy /api → :8081
 ```
@@ -134,7 +143,7 @@ Les tests n'utilisent que des données fictives, dont des classeurs générés e
 - **Frontend** : Angular 22 (standalone, signals, zoneless, Signal Forms), Angular Material 22 (thème M3), SCSS, TypeScript 6, npm.
 - **Tests** : JUnit, AssertJ, Mockito, Testcontainers ; Vitest via `ng test`.
 - **Conteneurs** :
-  - `postgres:18` ;
+  - `postgres:18`, pour la base et pour le service de sauvegarde `backup` ;
   - backend en Dockerfile multi-étapes (Temurin 25) ;
   - frontend servi par nginx non root, qui relaie `/api`.
 - **Volontairement absents** : Lombok, MapStruct, Spring Security, H2, NgRx, Tailwind.
@@ -155,14 +164,14 @@ GitHub Actions (`.github/workflows/ci.yml`), sur chaque push et sur les PR vers 
 
 - **backend** : `./mvnw -B verify` (Temurin 25, Testcontainers) ;
 - **frontend** : `npm ci`, `npx ng test --no-watch`, `npx ng build` (Node 24) ;
-- **docker** : `docker compose build`, `docker compose up -d`, attente de `http://localhost:8090`, puis `docker compose down`.
+- **docker** : `docker compose build`, `docker compose up -d`, attente de `http://localhost:8090`, sauvegarde puis restauration de données fictives, puis `docker compose down`.
 
 Il n'y a pas de CD : aucune image n'est publiée et rien n'est déployé. Aucun secret, données fictives uniquement.
 
 ## Limites connues et hors périmètre
 
 - Un seul utilisateur, sans authentification, sur le poste local.
-- Pas de sauvegarde automatique : la sauvegarde `pg_dump` se lance à la main.
+- Sauvegardes sur le même disque que la base par défaut, non chiffrées, au plus une par jour sans action manuelle (ADR 0003).
 - L'import ne fusionne pas : premier chargement, ou remplacement complet. Un import sans remplacement sur une base qui ne contient que des pistes ajoute celles du classeur, avec des doublons possibles (ADR 0002).
 - Hors périmètre tant que ce n'est pas demandé : historique des statuts, pièces jointes, export Excel, notifications, pagination serveur, déploiement distant.
 
@@ -170,5 +179,5 @@ Il n'y a pas de CD : aucune image n'est publiée et rien n'est déployé. Aucun 
 
 - [`CLAUDE.md`](CLAUDE.md) : modèle de données, règles métier, API, conventions, commandes et méthode de travail.
 - [`GLOSSARY.md`](GLOSSARY.md) : vocabulaire (candidature, groupe, piste à évaluer ou écartée…).
-- [`docs/adr/`](docs/adr/) : décisions d'architecture (invariants entre colonnes, périmètre du mode remplacement).
+- [`docs/adr/`](docs/adr/) : décisions d'architecture (invariants entre colonnes, périmètre du mode remplacement, sauvegarde automatique).
 - [`docs/phases.md`](docs/phases.md) : plan de construction par phases.
