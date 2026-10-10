@@ -29,10 +29,10 @@ import { GroupsApi } from '../groups-api';
       <mat-progress-bar mode="indeterminate" aria-label="Chargement des groupes" />
     } @else if (data.error()) {
       <p>La liste des groupes n’a pas pu être chargée.</p>
-    } @else if (groups().length === 0) {
+    } @else if (summaries().length === 0) {
       <p>Aucun groupe pour l’instant.</p>
     } @else {
-      <table mat-table [dataSource]="groups()">
+      <table mat-table [dataSource]="summaries()">
         <ng-container matColumnDef="name">
           <th mat-header-cell *matHeaderCellDef>Groupe</th>
           <td mat-cell *matCellDef="let group">
@@ -62,7 +62,7 @@ export class GroupsPage {
       forkJoin({ groups: this.groupsApi.list(), applications: this.applicationsApi.list() }),
   });
 
-  protected readonly groups = computed(() => {
+  protected readonly summaries = computed(() => {
     if (!this.data.hasValue()) {
       return [];
     }

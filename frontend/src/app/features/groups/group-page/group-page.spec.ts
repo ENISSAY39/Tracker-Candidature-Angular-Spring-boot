@@ -142,12 +142,28 @@ describe('GroupPage', () => {
     expect(page().querySelector('app-applications-list')).toBeNull();
   });
 
+  it('says when the group could not be loaded and links to the list of groups', async () => {
+    open(1);
+    // L'échec d'un des appels annule les autres
+    await vi.waitFor(() => {
+      backend.expectOne('/api/statuses');
+      backend.expectOne('/api/applications');
+      backend.expectOne('/api/groups').flush(null, { status: 500, statusText: 'Erreur' });
+    });
+
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(page().querySelector('h1')?.textContent?.trim()).toBe('Groupe indisponible');
+    });
+    expect(page().querySelector('a[href="/groups"]')).not.toBeNull();
+  });
+
   it('says when the group is unknown and links to the list of groups', async () => {
     open(99);
     await respond([application(1, 1, 'PENDING')]);
 
     expect(page().textContent).toContain('Ce groupe n’existe pas.');
     const link = page().querySelector<HTMLAnchorElement>('a[href="/groups"]');
-    expect(link?.textContent?.trim()).toBe('Voir la liste des groupes');
+    expect(link?.textContent?.trim()).toBe('Retour aux groupes');
   });
 });
