@@ -3,13 +3,22 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { BackupIndicator } from '../backup/backup-indicator';
 import { Theme, ThemeMode } from '../theme';
 
 /**
- * Coquille de l'application : barre de titre avec la navigation et le choix du thème, puis le contenu de la page.
+ * Coquille de l'application : barre de titre avec la navigation, la dernière sauvegarde et le choix du thème, puis
+ * le contenu de la page.
  */
 @Component({
-  imports: [MatButtonModule, MatMenuModule, MatToolbarModule, RouterLink, RouterLinkActive],
+  imports: [
+    BackupIndicator,
+    MatButtonModule,
+    MatMenuModule,
+    MatToolbarModule,
+    RouterLink,
+    RouterLinkActive,
+  ],
   selector: 'app-layout',
   styleUrl: './layout.scss',
   templateUrl: './layout.html',
