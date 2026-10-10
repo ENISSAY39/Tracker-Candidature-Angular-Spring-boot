@@ -1,15 +1,15 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, input, output, signal } from '@angular/core';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { today } from '../../../shared/dates';
 import { DeadlineCell } from '../../../shared/deadline-cell/deadline-cell';
-import { StatusBadge } from '../../../shared/status-badge/status-badge';
 import { isClosed, Status } from '../../../shared/status';
 import { JobApplication } from '../application';
 import { sortApplications } from '../application-sort';
+import { StatusMenu } from '../status-menu/status-menu';
 
 /**
  * Table des candidatures reçues en entrée, triable par colonne ; sans tri choisi, ordre par défaut du classeur.
@@ -22,7 +22,7 @@ import { sortApplications } from '../application-sort';
     MatTableModule,
     MatTooltipModule,
     RouterLink,
-    StatusBadge,
+    StatusMenu,
   ],
   selector: 'app-applications-table',
   styleUrl: './applications-table.scss',
@@ -31,6 +31,8 @@ import { sortApplications } from '../application-sort';
 export class ApplicationsTable {
   readonly applications = input.required<JobApplication[]>();
   readonly statuses = input.required<Status[]>();
+  /** Candidature dont le statut vient d'être changé, telle que renvoyée par le serveur. */
+  readonly statusChanged = output<JobApplication>();
 
   protected readonly columns: readonly (keyof JobApplication)[] = [
     'number',

@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { JobApplication } from '../application';
 import { ApplicationsApi } from '../applications-api';
 import { ApplicationsList } from '../applications-list/applications-list';
 
@@ -33,7 +34,11 @@ import { ApplicationsList } from '../applications-list/applications-list';
       @if (loaded.applications.length === 0) {
         <p>Aucune candidature pour l’instant.</p>
       } @else {
-        <app-applications-list [applications]="loaded.applications" [statuses]="loaded.statuses" />
+        <app-applications-list
+          [applications]="loaded.applications"
+          [statuses]="loaded.statuses"
+          (statusChanged)="replace($event)"
+        />
       }
     }
   `,
@@ -44,4 +49,17 @@ export class ApplicationsPage {
   protected readonly data = rxResource({
     stream: () => forkJoin({ statuses: this.api.statuses(), applications: this.api.list() }),
   });
+
+  /** Remplace la candidature par la réponse du serveur : tri, compteurs et alertes se recalculent. */
+  protected replace(updated: JobApplication): void {
+    this.data.update(
+      (loaded) =>
+        loaded && {
+          ...loaded,
+          applications: loaded.applications.map((application) =>
+            application.id === updated.id ? updated : application,
+          ),
+        },
+    );
+  }
 }

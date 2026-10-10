@@ -16,9 +16,7 @@ describe('StatusBadge', () => {
       label: "En cours d'évaluation",
       order: 4,
       requiresSentOn: true,
-
       closed: false,
-
       category: { code: 'OPENED', label: 'Dossier ouvert par le recruteur', order: 3 },
     });
 
@@ -33,9 +31,7 @@ describe('StatusBadge', () => {
       label: 'Refus',
       order: 9,
       requiresSentOn: true,
-
       closed: true,
-
       category: { code: 'REJECTED', label: 'Refus', order: 6 },
     });
 

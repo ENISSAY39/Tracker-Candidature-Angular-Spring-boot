@@ -24,7 +24,7 @@ import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom, forkJoin, Observable } from 'rxjs';
 import { openConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { fromDay, toDay } from '../../../shared/dates';
-import { Status, StatusCategory } from '../../../shared/status';
+import { groupByCategory, Status } from '../../../shared/status';
 import { containsText, trimToNull } from '../../../shared/text';
 import { JobApplication, JobApplicationRequest } from '../application';
 import { ApplicationsApi } from '../applications-api';
@@ -139,15 +139,9 @@ export class ApplicationForm {
   protected readonly failed = computed(() => !!this.options.error() || !!this.existing.error());
 
   /** Statuts groupés par catégorie, dans l'ordre du classeur. */
-  protected readonly statusGroups = computed(() => {
-    const groups = new Map<string, { category: StatusCategory; statuses: Status[] }>();
-    for (const status of this.options.value()?.statuses ?? []) {
-      const group = groups.get(status.category.code) ?? { category: status.category, statuses: [] };
-      group.statuses.push(status);
-      groups.set(status.category.code, group);
-    }
-    return [...groups.values()];
-  });
+  protected readonly statusGroups = computed(() =>
+    groupByCategory(this.options.value()?.statuses ?? []),
+  );
 
   protected readonly groupSuggestions = computed(() => {
     const typed = this.model().groupName;

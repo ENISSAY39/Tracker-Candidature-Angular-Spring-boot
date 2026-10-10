@@ -15,9 +15,11 @@
 
   <header>
     <h1>N° {{ application.number }} · {{ application.company }}</h1>
-    @if (status(); as status) {
-      <app-status-badge [status]="status" />
-    }
+    <app-status-menu
+      [application]="application"
+      [statuses]="data.value().statuses"
+      (changed)="replace($event)"
+    />
   </header>
 
   <dl>

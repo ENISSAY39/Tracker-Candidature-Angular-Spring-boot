@@ -1,3 +1,5 @@
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
+import { MatMenuHarness } from '@angular/material/menu/testing';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -13,9 +15,7 @@ const STATUSES: Status[] = [
     label: 'Entretien',
     order: 2,
     requiresSentOn: true,
-
     closed: false,
-
     category: { code: 'INTERVIEW', label: 'Entretien', order: 2 },
   },
   {
@@ -23,9 +23,7 @@ const STATUSES: Status[] = [
     label: 'En attente',
     order: 7,
     requiresSentOn: true,
-
     closed: false,
-
     category: { code: 'PENDING', label: 'En attente', order: 4 },
   },
   {
@@ -33,9 +31,7 @@ const STATUSES: Status[] = [
     label: 'Refus',
     order: 9,
     requiresSentOn: true,
-
     closed: true,
-
     category: { code: 'REJECTED', label: 'Refus', order: 6 },
   },
 ];
@@ -172,6 +168,29 @@ describe('ApplicationsPage', () => {
 
     const deadlineCells = rows().map((row) => row.querySelector<HTMLElement>('app-deadline-cell'));
     expect(deadlineCells.map((cell) => cell?.style.color)).toEqual(['rgb(192, 0, 0)', '']);
+  });
+
+  it('updates the row, its place and the counters after a quick status change', async () => {
+    await respond([application(1, 'PENDING'), application(2, 'INTERVIEW')]);
+    expect(numbers()).toEqual(['2', '1']);
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+
+    const menus = await loader.getAllHarnesses(MatMenuHarness);
+    await menus[1].open();
+    await menus[1].clickItem({ text: 'Refus' });
+    const request = await vi.waitFor(() => backend.expectOne('/api/applications/10/status'));
+    expect(request.request.body).toEqual({ status: 'REJECTED' });
+    request.flush(application(1, 'REJECTED'));
+
+    await vi.waitFor(async () => {
+      await fixture.whenStable();
+      expect(numbers()).toEqual(['2', '1']);
+      const counters = Array.from(page().querySelectorAll('.counters li')).map((li) =>
+        li.textContent?.replace(/\s+/g, ' ').trim(),
+      );
+      expect(counters).toEqual(['Total 2', 'Entretien 1', 'Refus 1']);
+    });
+    expect(rows()[1].classList.contains('closed')).toBe(true);
   });
 
   it('greys out the rows of closed applications', async () => {

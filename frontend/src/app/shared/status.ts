@@ -25,3 +25,20 @@ export interface Status {
 export function isClosed(status: Status): boolean {
   return status.closed;
 }
+
+/** Statuts d'une catégorie, pour les listes groupées. */
+export interface StatusGroup {
+  category: StatusCategory;
+  statuses: Status[];
+}
+
+/** Statuts regroupés par catégorie, dans l'ordre reçu de l'API. */
+export function groupByCategory(statuses: readonly Status[]): StatusGroup[] {
+  const groups = new Map<StatusCategoryCode, StatusGroup>();
+  for (const status of statuses) {
+    const group = groups.get(status.category.code) ?? { category: status.category, statuses: [] };
+    group.statuses.push(status);
+    groups.set(status.category.code, group);
+  }
+  return [...groups.values()];
+}
