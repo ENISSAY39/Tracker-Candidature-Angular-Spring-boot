@@ -69,12 +69,12 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 ## Phase 5 — Écran liste
 
 - [x] Layout et navigation (`core/`), intercepteur d'erreurs HTTP, locale `fr-FR`
-- [ ] `applications-api.ts` et types calqués sur les `…Response`
-- [ ] Table Angular Material triable avec tri par défaut (catégorie, puis `deadline_date`, puis `number`)
+- [x] `applications-api.ts` et types calqués sur les `…Response`
+- [x] Table Angular Material triable avec tri par défaut (catégorie, puis `deadline_date`, puis `number`)
 - [ ] Composants partagés : `status-badge` (palette par catégorie, WCAG AA), `deadline-cell` (gras `#C00000` si dépassée, `#B45309` de J à J+3)
 - [ ] Compteurs (« Total » + un par catégorie non vide) calculés en `computed`
 - [ ] Filtres : catégorie ou statut, groupe, texte libre, échéance dépassée ou sous 3 jours
-- [ ] Lignes grisées pour les statuts clos, notes tronquées
+- [x] Lignes grisées pour les statuts clos, notes tronquées
 - [ ] Tests Vitest : tri, compteurs, alertes d'échéance, service d'API
 
 ## Phase 6 — Fiche, formulaire, changement de statut
