@@ -47,8 +47,7 @@ class JobApplicationServiceTest {
 	@Test
 	void createGivesTheNextNumberOfTheSequenceAndCreatesAnUnknownGroup() {
 		when(repository.nextNumber()).thenReturn(27);
-		when(groupRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		savedEntitiesAreReturnedAsIs();
 
 		JobApplicationResponse created = service.create(request("Groupe Fictif", ApplicationStatus.PENDING));
 
@@ -74,8 +73,7 @@ class JobApplicationServiceTest {
 
 	@Test
 	void createStoresAnUnknownGroupWithoutItsSurroundingSpaces() {
-		when(groupRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		savedEntitiesAreReturnedAsIs();
 
 		JobApplicationResponse created = service.create(request("  Nouveau Groupe ", ApplicationStatus.PENDING));
 
@@ -96,8 +94,7 @@ class JobApplicationServiceTest {
 	@ParameterizedTest
 	@EnumSource(names = { "TO_SEND", "WITHDRAWN" })
 	void createAcceptsAnApplicationNeverSentWithoutSentDate(ApplicationStatus status) {
-		when(groupRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		savedEntitiesAreReturnedAsIs();
 
 		JobApplicationResponse created = service.create(request("Groupe Fictif", status, null, null));
 
@@ -108,8 +105,7 @@ class JobApplicationServiceTest {
 	@ParameterizedTest
 	@EnumSource(names = { "REJECTED", "WITHDRAWN" })
 	void createDropsTheDeadlineDateOfAClosedApplication(ApplicationStatus closedStatus) {
-		when(groupRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		savedEntitiesAreReturnedAsIs();
 
 		JobApplicationResponse created = service.create(
 				request("Groupe Fictif", closedStatus, LocalDate.of(2026, 10, 4), LocalDate.of(2026, 10, 18)));
@@ -119,8 +115,7 @@ class JobApplicationServiceTest {
 
 	@Test
 	void createKeepsTheDeadlineDateOfAnOpenApplication() {
-		when(groupRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		savedEntitiesAreReturnedAsIs();
 
 		JobApplicationResponse created = service.create(request("Groupe Fictif", ApplicationStatus.PENDING,
 				LocalDate.of(2026, 10, 4), LocalDate.of(2026, 10, 18)));
@@ -130,8 +125,7 @@ class JobApplicationServiceTest {
 
 	@Test
 	void createStoresEveryTextWithoutItsSurroundingSpaces() {
-		when(groupRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		savedEntitiesAreReturnedAsIs();
 
 		JobApplicationResponse created = service.create(new JobApplicationRequest("Groupe Fictif", " Fictif Aéro ",
 				" Stagiaire ingénieur logiciel\n", ApplicationStatus.PENDING, LocalDate.of(2026, 10, 4),
@@ -150,8 +144,7 @@ class JobApplicationServiceTest {
 	@ParameterizedTest
 	@ValueSource(strings = { "", "   ", " \t\n" })
 	void createStoresAnEmptyOptionalTextAsNull(String empty) {
-		when(groupRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		savedEntitiesAreReturnedAsIs();
 
 		JobApplicationResponse created = service.create(new JobApplicationRequest("Groupe Fictif", "Fictif Aéro",
 				"Stagiaire ingénieur logiciel", ApplicationStatus.PENDING, LocalDate.of(2026, 10, 4), empty, null,
@@ -192,6 +185,11 @@ class JobApplicationServiceTest {
 
 		assertThat(service.findAll()).extracting(JobApplicationResponse::number, JobApplicationResponse::groupName)
 			.containsExactly(tuple(1, "Groupe Fictif"), tuple(2, "Autre Groupe"));
+	}
+
+	private void savedEntitiesAreReturnedAsIs() {
+		when(groupRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 	}
 
 	private static JobApplicationRequest request(String groupName, ApplicationStatus status) {

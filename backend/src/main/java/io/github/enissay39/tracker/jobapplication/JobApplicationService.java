@@ -39,7 +39,7 @@ public class JobApplicationService {
 	@Transactional
 	public JobApplicationResponse create(JobApplicationRequest request) {
 		requireSentOnIfNeeded(request.status(), request.sentOn());
-		CompanyGroup group = groupService.resolve(request.groupName());
+		CompanyGroup group = groupService.findOrCreate(request.groupName());
 		JobApplication application = new JobApplication(repository.nextNumber(), group, request.company().trim(),
 				request.jobTitle().trim(), request.status());
 		application.setSentOn(request.sentOn());

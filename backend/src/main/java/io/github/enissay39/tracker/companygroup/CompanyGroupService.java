@@ -18,7 +18,7 @@ public class CompanyGroupService {
 	 * n'existe pas. Un groupe trouvé garde sa graphie.
 	 */
 	@Transactional
-	public CompanyGroup resolve(String name) {
+	public CompanyGroup findOrCreate(String name) {
 		String cleanName = name.trim();
 		return repository.findByNameIgnoreCase(cleanName).orElseGet(() -> repository.save(new CompanyGroup(cleanName)));
 	}
