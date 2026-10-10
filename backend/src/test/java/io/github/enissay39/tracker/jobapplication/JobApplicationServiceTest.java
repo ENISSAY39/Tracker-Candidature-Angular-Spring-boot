@@ -19,6 +19,7 @@ import io.github.enissay39.tracker.companygroup.CompanyGroupRepository;
 import io.github.enissay39.tracker.companygroup.CompanyGroupService;
 import io.github.enissay39.tracker.jobapplication.dto.JobApplicationRequest;
 import io.github.enissay39.tracker.jobapplication.dto.JobApplicationResponse;
+import io.github.enissay39.tracker.jobapplication.dto.StatusChangeRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -269,6 +270,118 @@ class JobApplicationServiceTest {
 	void deleteOfAnUnknownApplicationIsNotFound() {
 		assertThatThrownBy(() -> service.delete(42L)).isInstanceOf(ResourceNotFoundException.class)
 			.hasMessage("Candidature 42 introuvable.");
+	}
+
+	@Test
+	void changeStatusSetsTheStatusWithTheGivenSentAndDeadlineDates() {
+		when(repository.findById(5L)).thenReturn(Optional.of(existingApplication()));
+
+		JobApplicationResponse changed = service.changeStatus(5L,
+				new StatusChangeRequest(ApplicationStatus.PENDING, LocalDate.of(2026, 10, 4), LocalDate.of(2026, 10, 18)));
+
+		assertThat(changed.status()).isEqualTo(ApplicationStatus.PENDING);
+		assertThat(changed.sentOn()).isEqualTo(LocalDate.of(2026, 10, 4));
+		assertThat(changed.deadlineDate()).isEqualTo(LocalDate.of(2026, 10, 18));
+	}
+
+	@Test
+	void changeStatusReplacesTheExistingDatesWithTheGivenOnes() {
+		when(repository.findById(5L)).thenReturn(Optional.of(sentApplication(ApplicationStatus.PENDING)));
+
+		JobApplicationResponse changed = service.changeStatus(5L,
+				new StatusChangeRequest(ApplicationStatus.INTERVIEW, LocalDate.of(2026, 10, 6), LocalDate.of(2026, 10, 22)));
+
+		assertThat(changed.sentOn()).isEqualTo(LocalDate.of(2026, 10, 6));
+		assertThat(changed.deadlineDate()).isEqualTo(LocalDate.of(2026, 10, 22));
+	}
+
+	@Test
+	void reopeningAClosedApplicationTakesTheGivenDeadlineDate() {
+		JobApplication closed = sentApplication(ApplicationStatus.PENDING);
+		closed.setDeadlineDate(null);
+		closed.setStatus(ApplicationStatus.WITHDRAWN);
+		when(repository.findById(5L)).thenReturn(Optional.of(closed));
+
+		JobApplicationResponse reopened = service.changeStatus(5L,
+				new StatusChangeRequest(ApplicationStatus.PENDING, null, LocalDate.of(2026, 11, 2)));
+
+		assertThat(reopened.deadlineDate()).isEqualTo(LocalDate.of(2026, 11, 2));
+	}
+
+	@Test
+	void changeStatusKeepsTheExistingDatesWhenNoneAreGiven() {
+		JobApplication existing = sentApplication(ApplicationStatus.PENDING);
+		when(repository.findById(5L)).thenReturn(Optional.of(existing));
+
+		JobApplicationResponse changed = service.changeStatus(5L,
+				new StatusChangeRequest(ApplicationStatus.INTERVIEW, null, null));
+
+		assertThat(changed.status()).isEqualTo(ApplicationStatus.INTERVIEW);
+		assertThat(changed.sentOn()).isEqualTo(LocalDate.of(2026, 10, 4));
+		assertThat(changed.deadlineDate()).isEqualTo(LocalDate.of(2026, 10, 18));
+	}
+
+	@Test
+	void changeStatusRefusesAStatusThatRequiresASentDateWhenThereIsNone() {
+		JobApplication existing = existingApplication();
+		when(repository.findById(5L)).thenReturn(Optional.of(existing));
+
+		assertThatThrownBy(() -> service.changeStatus(5L, new StatusChangeRequest(ApplicationStatus.PENDING, null, null)))
+			.isInstanceOf(FieldRuleViolationException.class)
+			.hasMessage("La date d'envoi est obligatoire pour ce statut.")
+			.extracting("field")
+			.isEqualTo("sentOn");
+		assertThat(existing.getStatus()).isEqualTo(ApplicationStatus.TO_SEND);
+	}
+
+	@ParameterizedTest
+	@EnumSource(names = { "REJECTED", "WITHDRAWN" })
+	void changeStatusToAClosedStatusDropsTheDeadlineDateEvenIfGiven(ApplicationStatus closedStatus) {
+		when(repository.findById(5L)).thenReturn(Optional.of(sentApplication(ApplicationStatus.PENDING)));
+
+		JobApplicationResponse changed = service.changeStatus(5L,
+				new StatusChangeRequest(closedStatus, null, LocalDate.of(2026, 11, 1)));
+
+		assertThat(changed.deadlineDate()).isNull();
+	}
+
+	@Test
+	void changeStatusBackToToSendKeepsTheSentDate() {
+		when(repository.findById(5L)).thenReturn(Optional.of(sentApplication(ApplicationStatus.PENDING)));
+
+		JobApplicationResponse changed = service.changeStatus(5L,
+				new StatusChangeRequest(ApplicationStatus.TO_SEND, null, null));
+
+		assertThat(changed.sentOn()).isEqualTo(LocalDate.of(2026, 10, 4));
+	}
+
+	@Test
+	void reopeningAClosedApplicationDoesNotRestoreAnyDeadlineDate() {
+		JobApplication closed = sentApplication(ApplicationStatus.PENDING);
+		closed.setDeadlineDate(null);
+		closed.setStatus(ApplicationStatus.REJECTED);
+		when(repository.findById(5L)).thenReturn(Optional.of(closed));
+
+		JobApplicationResponse reopened = service.changeStatus(5L,
+				new StatusChangeRequest(ApplicationStatus.PENDING, null, null));
+
+		assertThat(reopened.deadlineDate()).isNull();
+		assertThat(reopened.sentOn()).isEqualTo(LocalDate.of(2026, 10, 4));
+	}
+
+	@Test
+	void changeStatusOfAnUnknownApplicationIsNotFound() {
+		assertThatThrownBy(() -> service.changeStatus(42L, new StatusChangeRequest(ApplicationStatus.TO_SEND, null, null)))
+			.isInstanceOf(ResourceNotFoundException.class)
+			.hasMessage("Candidature 42 introuvable.");
+	}
+
+	private JobApplication sentApplication(ApplicationStatus status) {
+		JobApplication application = existingApplication();
+		application.setStatus(status);
+		application.setSentOn(LocalDate.of(2026, 10, 4));
+		application.setDeadlineDate(LocalDate.of(2026, 10, 18));
+		return application;
 	}
 
 	private JobApplication existingApplication() {

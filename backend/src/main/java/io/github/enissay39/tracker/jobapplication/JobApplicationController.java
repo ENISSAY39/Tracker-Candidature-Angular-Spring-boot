@@ -5,11 +5,13 @@ import java.util.List;
 
 import io.github.enissay39.tracker.jobapplication.dto.JobApplicationRequest;
 import io.github.enissay39.tracker.jobapplication.dto.JobApplicationResponse;
+import io.github.enissay39.tracker.jobapplication.dto.StatusChangeRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -52,6 +54,11 @@ public class JobApplicationController {
 	@PutMapping("/{id}")
 	public JobApplicationResponse update(@PathVariable Long id, @Valid @RequestBody JobApplicationRequest request) {
 		return service.update(id, request);
+	}
+
+	@PatchMapping("/{id}/status")
+	public JobApplicationResponse changeStatus(@PathVariable Long id, @Valid @RequestBody StatusChangeRequest request) {
+		return service.changeStatus(id, request);
 	}
 
 	@DeleteMapping("/{id}")
