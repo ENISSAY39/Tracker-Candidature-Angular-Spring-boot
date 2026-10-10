@@ -111,13 +111,19 @@
         />
         <mat-datepicker-toggle matIconSuffix [for]="deadlinePicker" />
         <mat-datepicker #deadlinePicker />
-        <mat-hint>Proposée à l’envoi + 14 jours.</mat-hint>
+        <mat-hint>Proposée à l’envoi + {{ followUpDays }} jours.</mat-hint>
+        @for (error of form.deadlineDate().errors(); track $index) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
       </mat-form-field>
     </div>
 
     <mat-form-field class="wide">
       <mat-label>Prochaine action</mat-label>
       <textarea matInput aria-label="Prochaine action" rows="6" [formField]="form.notes"></textarea>
+      @for (error of form.notes().errors(); track $index) {
+        <mat-error>{{ error.message }}</mat-error>
+      }
     </mat-form-field>
 
     <div class="row">

@@ -28,7 +28,7 @@ import { Status, StatusCategory } from '../../../shared/status';
 import { containsText, trimToNull } from '../../../shared/text';
 import { JobApplication, JobApplicationRequest } from '../application';
 import { ApplicationsApi } from '../applications-api';
-import { proposeDeadline } from '../deadline-proposal';
+import { FOLLOW_UP_DAYS, proposeDeadline } from '../deadline-proposal';
 
 /** Valeurs du formulaire : textes en chaînes (vides si absents), dates en objets `Date` pour le datepicker. */
 interface ApplicationFormModel {
@@ -45,8 +45,9 @@ interface ApplicationFormModel {
   cvSent: string;
 }
 
-const SHORT_TEXT = 100;
-const TEXT = 255;
+// Longueurs maximales des colonnes, comme les @Size du backend
+const MAX_SHORT_TEXT_LENGTH_LENGTH = 100;
+const MAX_TEXT_LENGTH = 255;
 
 /**
  * Création (`/applications/new`) et modification (`/applications/:id/edit`) d'une candidature. Le numéro n'est jamais
@@ -79,6 +80,8 @@ export class ApplicationForm {
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
 
+  protected readonly followUpDays = FOLLOW_UP_DAYS;
+
   /** Posé après un enregistrement réussi : quitter le formulaire ne demande alors plus de confirmation. */
   private saved = false;
 
@@ -103,11 +106,15 @@ export class ApplicationForm {
 
   protected readonly form = form(this.model, (path) => {
     required(path.groupName, { message: 'Le groupe est obligatoire.' });
-    maxLength(path.groupName, SHORT_TEXT, { message: `${SHORT_TEXT} caractères au plus.` });
+    maxLength(path.groupName, MAX_SHORT_TEXT_LENGTH, {
+      message: `${MAX_SHORT_TEXT_LENGTH} caractères au plus.`,
+    });
     required(path.company, { message: 'L’entreprise est obligatoire.' });
-    maxLength(path.company, TEXT, { message: `${TEXT} caractères au plus.` });
+    maxLength(path.company, MAX_TEXT_LENGTH, { message: `${MAX_TEXT_LENGTH} caractères au plus.` });
     required(path.jobTitle, { message: 'Le poste est obligatoire.' });
-    maxLength(path.jobTitle, TEXT, { message: `${TEXT} caractères au plus.` });
+    maxLength(path.jobTitle, MAX_TEXT_LENGTH, {
+      message: `${MAX_TEXT_LENGTH} caractères au plus.`,
+    });
     required(path.status, { message: 'Le statut est obligatoire.' });
     required(path.sentOn, {
       message: 'La date d’envoi est obligatoire pour ce statut.',
@@ -115,10 +122,14 @@ export class ApplicationForm {
     });
     // Statut clos : plus de prochaine étape, l'échéance ne serait pas conservée
     disabled(path.deadlineDate, ({ valueOf }) => this.isClosed(valueOf(path.status)));
-    maxLength(path.deadlineLabel, TEXT, { message: `${TEXT} caractères au plus.` });
-    maxLength(path.startPeriod, SHORT_TEXT, { message: `${SHORT_TEXT} caractères au plus.` });
-    maxLength(path.channel, TEXT, { message: `${TEXT} caractères au plus.` });
-    maxLength(path.cvSent, TEXT, { message: `${TEXT} caractères au plus.` });
+    maxLength(path.deadlineLabel, MAX_TEXT_LENGTH, {
+      message: `${MAX_TEXT_LENGTH} caractères au plus.`,
+    });
+    maxLength(path.startPeriod, MAX_SHORT_TEXT_LENGTH, {
+      message: `${MAX_SHORT_TEXT_LENGTH} caractères au plus.`,
+    });
+    maxLength(path.channel, MAX_TEXT_LENGTH, { message: `${MAX_TEXT_LENGTH} caractères au plus.` });
+    maxLength(path.cvSent, MAX_TEXT_LENGTH, { message: `${MAX_TEXT_LENGTH} caractères au plus.` });
   });
 
   protected readonly loading = computed(
