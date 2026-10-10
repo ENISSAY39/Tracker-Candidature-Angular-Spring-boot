@@ -1,9 +1,12 @@
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
+import { MatButtonHarness } from '@angular/material/button/testing';
+import { MatDialogHarness } from '@angular/material/dialog/testing';
+import { MatInputHarness } from '@angular/material/input/testing';
 import { MatMenuHarness } from '@angular/material/menu/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { vi } from 'vitest';
 import { Status } from '../../../shared/status';
 import { JobApplication } from '../../applications/application';
@@ -60,7 +63,11 @@ describe('GroupPage', () => {
 
   function open(id: number): void {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([{ path: 'groups', children: [] }]),
+      ],
     });
     backend = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(GroupPage);
@@ -165,5 +172,69 @@ describe('GroupPage', () => {
     expect(page().textContent).toContain('Ce groupe n’existe pas.');
     const link = page().querySelector<HTMLAnchorElement>('a[href="/groups"]');
     expect(link?.textContent?.trim()).toBe('Retour aux groupes');
+  });
+
+  it('renames the group: title and group column follow', async () => {
+    open(1);
+    await respond([application(1, 1, 'PENDING'), application(2, 2, 'PENDING')]);
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const dialogs = TestbedHarnessEnvironment.documentRootLoader(fixture);
+
+    await (await loader.getHarness(MatButtonHarness.with({ text: 'Renommer' }))).click();
+    const dialog = await dialogs.getHarness(MatDialogHarness);
+    await (await dialog.getHarness(MatInputHarness)).setValue('Groupe Renommé');
+    await (await dialog.getHarness(MatButtonHarness.with({ text: 'Renommer' }))).click();
+    (await vi.waitFor(() => backend.expectOne('/api/groups/1'))).flush({
+      id: 1,
+      name: 'Groupe Renommé',
+    });
+
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(page().querySelector('h1')?.textContent?.trim()).toBe('Groupe Renommé');
+    });
+    const groupCells = Array.from(page().querySelectorAll('td.mat-column-groupName'));
+    expect(groupCells.map((cell) => cell.textContent?.trim())).toEqual(['Groupe Renommé']);
+  });
+
+  it('goes back to the list of groups once the group is deleted', async () => {
+    open(2);
+    await respond([application(1, 1, 'PENDING')]);
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const dialogs = TestbedHarnessEnvironment.documentRootLoader(fixture);
+
+    await (await loader.getHarness(MatButtonHarness.with({ text: 'Supprimer' }))).click();
+    const dialog = await dialogs.getHarness(MatDialogHarness);
+    expect(await dialog.getContentText()).toContain('Groupe Alpha');
+    await (await dialog.getHarness(MatButtonHarness.with({ text: 'Supprimer' }))).click();
+    const request = await vi.waitFor(() => backend.expectOne('/api/groups/2'));
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null, { status: 204, statusText: 'No Content' });
+
+    await vi.waitFor(() => expect(TestBed.inject(Router).url).toBe('/groups'));
+    expect(document.body.textContent).toContain('Groupe « Groupe Alpha » supprimé.');
+  });
+
+  it('stays on the group when it still has applications', async () => {
+    open(1);
+    await respond([application(1, 1, 'PENDING')]);
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const dialogs = TestbedHarnessEnvironment.documentRootLoader(fixture);
+
+    await (await loader.getHarness(MatButtonHarness.with({ text: 'Supprimer' }))).click();
+    const dialog = await dialogs.getHarness(MatDialogHarness);
+    await (await dialog.getHarness(MatButtonHarness.with({ text: 'Supprimer' }))).click();
+    (await vi.waitFor(() => backend.expectOne('/api/groups/1'))).flush(
+      { status: 409, detail: 'Le groupe « Groupe Fictif » a des candidatures.' },
+      { status: 409, statusText: 'Conflict' },
+    );
+
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain(
+        'Le groupe « Groupe Fictif » a encore des candidatures : il ne peut pas être supprimé.',
+      ),
+    );
+    expect(TestBed.inject(Router).url).toBe('/');
+    expect(page().querySelector('h1')?.textContent?.trim()).toBe('Groupe Fictif');
   });
 });

@@ -16,3 +16,23 @@ export function summarizeGroups(
   }
   return groups.map((group) => ({ ...group, applicationCount: counts.get(group.id) ?? 0 }));
 }
+
+/** Groupes où le groupe renommé remplace l'ancien, retriés par nom sans tenir compte de la casse ni des accents. */
+export function replaceGroup(
+  groups: readonly CompanyGroup[],
+  renamed: CompanyGroup,
+): CompanyGroup[] {
+  return groups
+    .map((group) => (group.id === renamed.id ? renamed : group))
+    .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+}
+
+/** Candidatures où celles du groupe renommé portent son nouveau nom. */
+export function renameGroupOf(
+  applications: readonly JobApplication[],
+  renamed: CompanyGroup,
+): JobApplication[] {
+  return applications.map((application) =>
+    application.groupId === renamed.id ? { ...application, groupName: renamed.name } : application,
+  );
+}

@@ -11,4 +11,14 @@ export class GroupsApi {
   list(): Observable<CompanyGroup[]> {
     return this.http.get<CompanyGroup[]>('/api/groups');
   }
+
+  /** Nouveau nom, nettoyé par le serveur ; 409 si un autre groupe le porte déjà (sans tenir compte de la casse). */
+  rename(id: number, name: string): Observable<CompanyGroup> {
+    return this.http.put<CompanyGroup>(`/api/groups/${id}`, { name });
+  }
+
+  /** 409 si le groupe a encore des candidatures. */
+  delete(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/groups/${id}`);
+  }
 }
