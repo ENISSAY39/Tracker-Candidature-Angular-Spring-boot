@@ -13,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import tools.jackson.databind.exc.MismatchedInputException;
 
@@ -79,6 +80,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 			HttpStatusCode status, WebRequest request) {
 		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "Requête invalide",
 				"Le paramètre « " + ex.getPropertyName() + " » est invalide.");
+		return handleExceptionInternal(ex, problem, headers, status, request);
+	}
+
+	// Envoi au-delà de spring.servlet.multipart.max-file-size ; la limite n'est pas toujours connue (-1)
+	@Override
+	protected ResponseEntity<Object> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex,
+			HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+		long maxBytes = ex.getMaxUploadSize();
+		String limit = (maxBytes > 0) ? " (" + maxBytes / (1024 * 1024) + " Mo)" : "";
+		ProblemDetail problem = problem(HttpStatus.CONTENT_TOO_LARGE, "Fichier trop volumineux",
+				"Le fichier envoyé dépasse la taille maximale autorisée" + limit + ".");
 		return handleExceptionInternal(ex, problem, headers, status, request);
 	}
 

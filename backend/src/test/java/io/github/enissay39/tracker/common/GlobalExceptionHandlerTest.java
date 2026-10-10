@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @WebMvcTest(GlobalExceptionHandlerTest.ProbeController.class)
 @Import(GlobalExceptionHandlerTest.ProbeController.class)
@@ -62,6 +63,17 @@ class GlobalExceptionHandlerTest {
 					 "detail": "Le fichier n'est pas un classeur Excel lisible (.xlsx)."}
 					""")
 			.doesNotHavePath("$.errors");
+	}
+
+	@Test
+	void anUploadAboveTheLimitGivesA413InFrench() {
+		assertThat(mvc.get().uri("/probe/too-large")).hasStatus(HttpStatus.CONTENT_TOO_LARGE)
+			.hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
+			.bodyJson()
+			.isLenientlyEqualTo("""
+					{"status": 413, "title": "Fichier trop volumineux",
+					 "detail": "Le fichier envoyé dépasse la taille maximale autorisée (10 Mo)."}
+					""");
 	}
 
 	@Test
@@ -182,6 +194,11 @@ class GlobalExceptionHandlerTest {
 		@GetMapping("/invalid-request")
 		void invalidRequest() {
 			throw new InvalidRequestException("Le fichier n'est pas un classeur Excel lisible (.xlsx).");
+		}
+
+		@GetMapping("/too-large")
+		void tooLarge() {
+			throw new MaxUploadSizeExceededException(10 * 1024 * 1024);
 		}
 
 		@GetMapping("/field-rule")
