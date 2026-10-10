@@ -109,6 +109,35 @@ describe('ApplicationsList', () => {
     );
   });
 
+  it('keeps the select and the counters in step for a category with a single status', async () => {
+    await render();
+    const select = await loader.getHarness(MatSelectHarness.with({ selector: '.status-filter' }));
+
+    page().querySelectorAll<HTMLButtonElement>('.counters button')[3].click();
+    await fixture.whenStable();
+    expect(await select.getValueText()).toBe('En attente');
+    expect(numbers()).toEqual(['4']);
+
+    await select.open();
+    await select.clickOptions({ text: 'Entretien' });
+    await fixture.whenStable();
+    expect(page().querySelectorAll('.counters button')[1].getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+  });
+
+  it('disables the clear button once nothing is filtered any more', async () => {
+    await render();
+    const clear = await loader.getHarness(MatButtonHarness.with({ text: 'Effacer les filtres' }));
+    const search = await loader.getHarness(MatInputHarness);
+
+    await search.setValue('fictif');
+    expect(await clear.isDisabled()).toBe(false);
+    await search.setValue('  ');
+
+    expect(await clear.isDisabled()).toBe(true);
+  });
+
   it('offers the statuses grouped by category, and filters on one of them', async () => {
     await render();
     const select = await loader.getHarness(MatSelectHarness.with({ selector: '.status-filter' }));
@@ -174,7 +203,9 @@ describe('ApplicationsList', () => {
     await (await loader.getHarness(MatInputHarness)).setValue('introuvable');
     await fixture.whenStable();
 
-    expect(page().textContent).toContain('Aucune candidature ne correspond aux filtres.');
+    expect(page().querySelector('[role="status"]')?.textContent).toContain(
+      'Aucune candidature ne correspond aux filtres.',
+    );
     expect(page().querySelector('table')).toBeNull();
   });
 });

@@ -61,35 +61,46 @@ export class ApplicationsList {
     filterApplications(this.applications(), this.statuses(), this.filter(), this.today),
   );
 
-  protected readonly isFiltered = computed(() => this.filter() !== NO_FILTER);
+  protected readonly isFiltered = computed(() => {
+    const filter = this.filter();
+    return (
+      filter.statusChoice !== null ||
+      filter.groupId !== null ||
+      filter.text.trim() !== '' ||
+      filter.deadlineAlertOnly
+    );
+  });
 
-  /** Une entrée par catégorie (dans l'ordre), puis ses statuts ; la catégorie entière si elle en a plusieurs. */
+  /**
+   * Une entrée par catégorie, dans l'ordre. Plusieurs statuts : « Toute la catégorie » puis chaque statut. Un seul
+   * statut : il vaut la catégorie entière, comme son compteur.
+   */
   protected readonly statusGroups = computed(() => {
-    const groups = new Map<string, StatusOptionGroup>();
+    const groups = new Map<string, { category: StatusCategory; statuses: Status[] }>();
     for (const status of this.statuses()) {
-      const group = groups.get(status.category.code) ?? { category: status.category, options: [] };
-      group.options.push({ label: status.label, choice: { kind: 'status', code: status.code } });
+      const group = groups.get(status.category.code) ?? { category: status.category, statuses: [] };
+      group.statuses.push(status);
       groups.set(status.category.code, group);
     }
-    return [...groups.values()].map((group) =>
-      group.options.length > 1
-        ? {
-            ...group,
-            options: [
-              {
-                label: 'Toute la catégorie',
-                choice: { kind: 'category', code: group.category.code } as StatusChoice,
-              },
-              ...group.options,
-            ],
-          }
-        : group,
-    );
+    return [...groups.values()].map(({ category, statuses }): StatusOptionGroup => {
+      const wholeCategory: StatusChoice = { kind: 'category', code: category.code };
+      const options: StatusOption[] =
+        statuses.length === 1
+          ? [{ label: statuses[0].label, choice: wholeCategory }]
+          : [
+              { label: 'Toute la catégorie', choice: wholeCategory },
+              ...statuses.map((status): StatusOption => ({
+                label: status.label,
+                choice: { kind: 'status', code: status.code },
+              })),
+            ];
+      return { category, options };
+    });
   });
 
   /** Groupes présents dans la liste, par nom. */
   protected readonly groups = computed(() => {
-    const names = new Map(this.applications().map((a) => [a.groupId, a.groupName]));
+    const names = new Map(this.applications().map((app) => [app.groupId, app.groupName]));
     return [...names]
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));

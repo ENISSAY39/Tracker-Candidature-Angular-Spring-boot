@@ -73,7 +73,7 @@
 </div>
 
 @if (rows().length === 0) {
-  <p>Aucune candidature ne correspond aux filtres.</p>
+  <p role="status">Aucune candidature ne correspond aux filtres.</p>
 } @else {
   <app-applications-table [applications]="rows()" [statuses]="statuses()" />
 }
