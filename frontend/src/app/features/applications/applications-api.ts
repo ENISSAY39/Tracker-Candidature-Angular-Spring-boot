@@ -15,6 +15,14 @@ export class ApplicationsApi {
     return this.http.get<JobApplication[]>('/api/applications');
   }
 
+  get(id: number): Observable<JobApplication> {
+    return this.http.get<JobApplication>(`/api/applications/${id}`);
+  }
+
+  delete(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/applications/${id}`);
+  }
+
   /** Statuts dans l'ordre du classeur, avec libellé et catégorie. */
   statuses(): Observable<Status[]> {
     return this.statuses$;

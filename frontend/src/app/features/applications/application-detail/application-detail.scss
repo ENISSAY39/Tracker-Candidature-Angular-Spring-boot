@@ -1,0 +1,33 @@
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.5rem 1.5rem;
+  margin: 1.5rem 0;
+}
+
+dt {
+  color: var(--mat-sys-on-surface-variant);
+  font-weight: 500;
+}
+
+dd {
+  margin: 0;
+}
+
+// Journal de suivi : retours à la ligne conservés
+.notes {
+  white-space: pre-line;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}

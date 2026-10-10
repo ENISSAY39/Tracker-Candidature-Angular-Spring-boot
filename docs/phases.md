@@ -79,11 +79,11 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 
 ## Phase 6 — Fiche, formulaire, changement de statut
 
-- [ ] Fiche d'une candidature (`/applications/:id`) avec notes complètes
+- [x] Fiche d'une candidature (`/applications/:id`) avec notes complètes
 - [ ] Formulaire de création et d'édition (datepicker, groupe en autocomplétion, canal en autocomplétion sur les valeurs existantes)
 - [ ] Proposition de `deadline_date = sent_on + 14 jours` à la saisie de `sent_on` si l'échéance est vide
 - [ ] Changement rapide de statut depuis la liste (`PATCH …/status`) ; dialogue « Envoyée le » (aujourd'hui par défaut, échéance proposée à + 14 jours) seulement si la date d'envoi manque
-- [ ] Suppression avec `confirm-dialog`
+- [x] Suppression avec `confirm-dialog`
 - [ ] Retours utilisateur par snackbar, gestion des erreurs de validation du backend
 
 ## Phase 7 — Groupes, pistes, écran d'import
