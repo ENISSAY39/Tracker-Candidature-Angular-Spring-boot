@@ -8,18 +8,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.github.enissay39.tracker.common.InvalidRequestException;
+import io.github.enissay39.tracker.common.Texts;
 import io.github.enissay39.tracker.jobapplication.ApplicationStatus;
 import io.github.enissay39.tracker.jobapplication.dto.JobApplicationRequest;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.DateUtil;
-import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -38,13 +39,12 @@ final class WorkbookReader implements AutoCloseable {
 
 	private final Workbook workbook;
 
-	private final FormulaEvaluator evaluator;
-
-	private final DataFormatter formatter = new DataFormatter();
+	// Texte tel qu'Excel l'affiche en français ; une formule donne sa dernière valeur calculée, jamais réévaluée
+	private final DataFormatter formatter = new DataFormatter(Locale.FRANCE);
 
 	private WorkbookReader(Workbook workbook) {
 		this.workbook = workbook;
-		this.evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+		formatter.setUseCachedValuesForFormulaCells(true);
 	}
 
 	static WorkbookReader open(InputStream input) {
@@ -71,7 +71,7 @@ final class WorkbookReader implements AutoCloseable {
 			if (isBlank(numberCell)) {
 				break;
 			}
-			applications.add(new ImportedApplication(index + 1, (int) numericValue(numberCell),
+			applications.add(new ImportedApplication(number(sheet, index, numberCell),
 					new JobApplicationRequest(text(columns.cell(row, "Groupe")),
 							text(columns.cell(row, "Entreprise")), text(columns.cell(row, "Poste")),
 							status(sheet, index, columns.cell(row, "Statut")),
@@ -137,18 +137,19 @@ final class WorkbookReader implements AutoCloseable {
 		return cell.getLocalDateTimeCellValue().toLocalDate();
 	}
 
-	private double numericValue(Cell cell) {
-		return (cell.getCellType() == CellType.FORMULA) ? evaluator.evaluate(cell).getNumberValue()
-				: cell.getNumericCellValue();
+	private int number(Sheet sheet, int index, Cell cell) {
+		if (cellType(cell) == CellType.NUMERIC) {
+			double value = cell.getNumericCellValue();
+			if (value == Math.rint(value) && value >= 1 && value <= Integer.MAX_VALUE) {
+				return (int) value;
+			}
+		}
+		throw rejected(sheet, index, "numéro « " + text(cell) + " » invalide.");
 	}
 
 	// Texte affiché par Excel, sans espaces de début et de fin ; null si la cellule est vide
 	private String text(Cell cell) {
-		if (cell == null) {
-			return null;
-		}
-		String value = formatter.formatCellValue(cell, evaluator).trim();
-		return value.isEmpty() ? null : value;
+		return (cell == null) ? null : Texts.trimToNull(formatter.formatCellValue(cell));
 	}
 
 	private boolean isBlank(Cell cell) {

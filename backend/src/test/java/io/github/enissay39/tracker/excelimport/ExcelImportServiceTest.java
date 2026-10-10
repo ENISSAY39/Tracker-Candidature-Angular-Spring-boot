@@ -10,6 +10,7 @@ import java.util.List;
 
 import io.github.enissay39.tracker.TestcontainersConfiguration;
 import io.github.enissay39.tracker.common.ConflictException;
+import io.github.enissay39.tracker.common.InvalidRequestException;
 import io.github.enissay39.tracker.companygroup.CompanyGroup;
 import io.github.enissay39.tracker.companygroup.CompanyGroupRepository;
 import io.github.enissay39.tracker.excelimport.dto.ImportResultResponse;
@@ -143,6 +144,27 @@ class ExcelImportServiceTest {
 		assertThat(result.jobApplications()).isEqualTo(1);
 		assertThat(applicationRepository.findAllWithCompanyGroup()).extracting(JobApplication::getNumber)
 			.containsExactly(1);
+	}
+
+	@Test
+	void rejectsANumberThatIsNotAWholeNumberCitingTheRow() {
+		TestWorkbook workbook = new TestWorkbook().applications(application(1, "Groupe Fictif", "À envoyer", null),
+				application("Total", "Groupe Fictif", "À envoyer", null));
+
+		assertThatThrownBy(() -> service.importWorkbook(workbook.toInputStream()))
+			.isInstanceOf(InvalidRequestException.class)
+			.hasMessage("Import refusé : feuille « Toutes les candidatures », ligne 5 : numéro « Total » invalide.");
+		assertThat(applicationRepository.count()).isZero();
+	}
+
+	@Test
+	void readsANumberInATextColumnAsExcelDisplaysIt() {
+		List<String> headers = List.of("#", "Groupe", "Entreprise", "Poste", "Statut", "Début");
+		service.importWorkbook(new TestWorkbook()
+			.applications(headers, new Object[] { 1, "Groupe Fictif", "Fictif Aéro", "Stagiaire", "À envoyer", 2027 })
+			.toInputStream());
+
+		assertThat(byNumber(1).getStartPeriod()).isEqualTo("2027");
 	}
 
 	@Test

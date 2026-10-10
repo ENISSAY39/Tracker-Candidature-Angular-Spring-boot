@@ -57,7 +57,7 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 
 - [x] Lecture de la feuille « Toutes les candidatures » avec Apache POI : ligne d'en-têtes (première cellule = `#`), colonnes lues par leur intitulé, arrêt à la première ligne sans `#`
 - [ ] Conversion du statut par libellé exact, rejet de l'import avec le numéro de ligne si le libellé est inconnu
-- [ ] Dates : cellules de type date uniquement
+- [x] Dates : cellules de type date uniquement
 - [ ] Rejet de l'import avec le numéro de ligne si « Envoyée le » manque alors que le statut l'exige
 - [ ] Lecture des feuilles « À évaluer » et « Abandonnées » vers `job_lead` (en-têtes repérés par `Entreprise`, lignes vides ignorées) ; feuilles par employeur et « Autres » ignorées
 - [x] Conservation des `number` du classeur, recalage de la séquence sur le maximum
