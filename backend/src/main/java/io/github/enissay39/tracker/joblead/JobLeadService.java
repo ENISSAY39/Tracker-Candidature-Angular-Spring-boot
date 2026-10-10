@@ -2,10 +2,15 @@ package io.github.enissay39.tracker.joblead;
 
 import java.util.List;
 
+import io.github.enissay39.tracker.common.ConflictException;
 import io.github.enissay39.tracker.common.ResourceNotFoundException;
 import io.github.enissay39.tracker.common.Texts;
+import io.github.enissay39.tracker.jobapplication.JobApplicationService;
+import io.github.enissay39.tracker.jobapplication.dto.JobApplicationResponse;
+import io.github.enissay39.tracker.joblead.dto.DiscardLeadRequest;
 import io.github.enissay39.tracker.joblead.dto.JobLeadRequest;
 import io.github.enissay39.tracker.joblead.dto.JobLeadResponse;
+import io.github.enissay39.tracker.joblead.dto.PromoteLeadRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,8 +20,11 @@ public class JobLeadService {
 
 	private final JobLeadRepository repository;
 
-	public JobLeadService(JobLeadRepository repository) {
+	private final JobApplicationService applicationService;
+
+	public JobLeadService(JobLeadRepository repository, JobApplicationService applicationService) {
 		this.repository = repository;
+		this.applicationService = applicationService;
 	}
 
 	/**
@@ -58,6 +66,50 @@ public class JobLeadService {
 	}
 
 	/**
+	 * Crée une candidature « À envoyer » à partir d'une piste à évaluer, puis supprime la piste, dans la même
+	 * transaction : si la création échoue, la piste reste. Numéro et groupe suivent les règles des candidatures.
+	 */
+	@Transactional
+	public JobApplicationResponse promote(Long id, PromoteLeadRequest request) {
+		JobLead lead = findExisting(id);
+		if (lead.getState() == LeadState.DISCARDED) {
+			throw new ConflictException("La piste " + id + " est écartée : réévaluez-la avant de la promouvoir.");
+		}
+		JobApplicationResponse application = applicationService
+			.create(JobLeadMapper.toApplicationRequest(lead, request.groupName()));
+		repository.delete(lead);
+		return application;
+	}
+
+	/**
+	 * Écarte une piste à évaluer avec son motif ; CV prévu et remarque sont conservés.
+	 */
+	@Transactional
+	public JobLeadResponse discard(Long id, DiscardLeadRequest request) {
+		JobLead lead = findExisting(id);
+		if (lead.getState() == LeadState.DISCARDED) {
+			throw new ConflictException("La piste " + id + " est déjà écartée.");
+		}
+		lead.discard(request.reason().trim());
+		repository.saveAndFlush(lead);
+		return JobLeadMapper.toResponse(lead);
+	}
+
+	/**
+	 * Remet une piste écartée à évaluer et efface son motif.
+	 */
+	@Transactional
+	public JobLeadResponse restore(Long id) {
+		JobLead lead = findExisting(id);
+		if (lead.getState() == LeadState.TO_EVALUATE) {
+			throw new ConflictException("La piste " + id + " est déjà à évaluer.");
+		}
+		lead.restore();
+		repository.saveAndFlush(lead);
+		return JobLeadMapper.toResponse(lead);
+	}
+
+	/**
 	 * Supprime toutes les pistes. Réservé à l'import en mode remplacement.
 	 */
 	@Transactional
@@ -75,8 +127,7 @@ public class JobLeadService {
 		copyDetails(request, lead);
 		String reason = Texts.trimToNull(discardReason);
 		if (reason != null) {
-			lead.setState(LeadState.DISCARDED);
-			lead.setDiscardReason(reason);
+			lead.discard(reason);
 		}
 		repository.save(lead);
 	}

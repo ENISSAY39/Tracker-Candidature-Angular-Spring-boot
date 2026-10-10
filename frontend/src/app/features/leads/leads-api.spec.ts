@@ -79,4 +79,36 @@ describe('LeadsApi', () => {
 
     expect(await result).toBeNull();
   });
+
+  it('promotes a lead with POST /api/leads/{id}/promote and gives the created application', async () => {
+    const result = firstValueFrom(api.promote(4, 'Groupe Fictif'));
+
+    const request = backend.expectOne('/api/leads/4/promote');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ groupName: 'Groupe Fictif' });
+    request.flush({ id: 30, number: 41 });
+
+    expect(await result).toEqual({ id: 30, number: 41 });
+  });
+
+  it('discards a lead with POST /api/leads/{id}/discard', async () => {
+    const result = firstValueFrom(api.discard(4, 'Trop loin de Ville-Test'));
+
+    const request = backend.expectOne('/api/leads/4/discard');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ reason: 'Trop loin de Ville-Test' });
+    request.flush(LEAD);
+
+    expect(await result).toEqual(LEAD);
+  });
+
+  it('restores a lead with POST /api/leads/{id}/restore', async () => {
+    const result = firstValueFrom(api.restore(4));
+
+    const request = backend.expectOne('/api/leads/4/restore');
+    expect(request.request.method).toBe('POST');
+    request.flush(LEAD);
+
+    expect(await result).toEqual(LEAD);
+  });
 });
