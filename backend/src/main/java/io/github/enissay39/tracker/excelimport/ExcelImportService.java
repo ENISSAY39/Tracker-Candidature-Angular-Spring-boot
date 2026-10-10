@@ -1,12 +1,14 @@
 package io.github.enissay39.tracker.excelimport;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 import io.github.enissay39.tracker.common.ConflictException;
 import io.github.enissay39.tracker.companygroup.CompanyGroupService;
 import io.github.enissay39.tracker.excelimport.dto.ImportResultResponse;
 import io.github.enissay39.tracker.jobapplication.JobApplicationService;
+import io.github.enissay39.tracker.joblead.JobLeadService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,9 +23,13 @@ public class ExcelImportService {
 
 	private final CompanyGroupService groupService;
 
-	public ExcelImportService(JobApplicationService applicationService, CompanyGroupService groupService) {
+	private final JobLeadService leadService;
+
+	public ExcelImportService(JobApplicationService applicationService, CompanyGroupService groupService,
+			JobLeadService leadService) {
 		this.applicationService = applicationService;
 		this.groupService = groupService;
+		this.leadService = leadService;
 	}
 
 	@Transactional
@@ -31,19 +37,30 @@ public class ExcelImportService {
 		if (applicationService.hasApplications()) {
 			throw new ConflictException("La base contient déjà des candidatures : l'import est refusé.");
 		}
-		List<ImportedApplication> applications = read(input);
+		Workbook workbook = read(input);
 		long groupsBefore = groupService.count();
-		for (ImportedApplication application : applications) {
+		for (ImportedApplication application : workbook.applications()) {
 			applicationService.importApplication(application.number(), application.request());
 		}
 		applicationService.alignNumberSequence();
-		return new ImportResultResponse((int) (groupService.count() - groupsBefore), applications.size(), 0);
+		for (ImportedLead lead : workbook.leads()) {
+			leadService.importLead(lead.request(), lead.discardReason());
+		}
+		return new ImportResultResponse((int) (groupService.count() - groupsBefore), workbook.applications().size(),
+				workbook.leads().size());
 	}
 
-	private static List<ImportedApplication> read(InputStream input) {
+	// Tout le classeur est lu et validé avant la première écriture
+	private static Workbook read(InputStream input) {
 		try (WorkbookReader reader = WorkbookReader.open(input)) {
-			return reader.readApplications();
+			List<ImportedApplication> applications = reader.readApplications();
+			List<ImportedLead> leads = new ArrayList<>(reader.readLeads(WorkbookReader.TO_EVALUATE_SHEET, false));
+			leads.addAll(reader.readLeads(WorkbookReader.DISCARDED_SHEET, true));
+			return new Workbook(applications, leads);
 		}
+	}
+
+	private record Workbook(List<ImportedApplication> applications, List<ImportedLead> leads) {
 	}
 
 }
