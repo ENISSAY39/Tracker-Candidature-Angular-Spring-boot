@@ -1,6 +1,6 @@
 # Phases du projet
 
-Plan de construction du tracker de candidatures, dans l'ordre. Source : `CLAUDE.md` (« Ordre de construction »). Chaque phase avance par tranches verticales courtes (migration → entité → service → contrôleur → tests → écran), avec un commit par tranche au format Conventional Commits. Workflow Git : une branche et une PR par tranche, jamais de commit ni de push sur `main`, relecture et fusion par toi (détail dans `CLAUDE.md`, « Workflow Git »).
+Plan de construction du tracker de candidatures, dans l'ordre. Source : `CLAUDE.md` (« Ordre de construction »). Chaque phase avance par tranches verticales courtes (migration → entité → service → contrôleur → tests → écran), avec un commit par tranche au format Conventional Commits. Workflow Git : une branche et une PR par tranche, jamais de commit ni de push sur `main`, fusion par l'agent une fois la CI verte (détail dans `CLAUDE.md`, « Workflow Git »).
 
 Une phase est terminée quand les tests de la partie touchée sont au vert : `./mvnw verify`, `npx ng test --no-watch`, `npx ng build`.
 

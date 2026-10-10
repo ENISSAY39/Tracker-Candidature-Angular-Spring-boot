@@ -40,6 +40,8 @@ Le `JAVA_HOME` système peut encore pointer sur un JDK 21 : vérifier `java -ver
 
 `spring-boot:run` et `npm start` sont bloquants : les lancer en arrière-plan, ou me demander de le faire.
 
+**Session cloud Claude Code** (Linux, pas le poste Windows) : le script d'installation de l'environnement fournit JDK 25 dans `/opt/jdk25` et Node 24 dans `/opt/node24`. Avant de lancer les tests : `export JAVA_HOME=/opt/jdk25 PATH=/opt/jdk25/bin:/opt/node24/bin:$PATH`, et démarrer Docker pour Testcontainers s'il ne répond pas (`docker info`, sinon `dockerd` en arrière-plan). Si `./mvnw` ne peut pas télécharger Maven derrière le proxy, utiliser `mvn` (même commandes). `gh` n'y est pas installé : utiliser les outils GitHub de la session pour les issues et les PR.
+
 ## Arborescence cible
 
 ```text
@@ -198,8 +200,9 @@ POST /import/excel                multipart `file`, option `?mode=replace`
      - la PR termine l'issue / sous-issue (critères d'acceptation remplis) : `Closes #n`, pour que la fusion la ferme ;
      - la PR n'en fait qu'une partie : `Part of #n` (pas de `Closes`) ;
      - sous-issue d'un parent : ajouter `Part of #parent` ; le parent n'est fermé (`Closes #parent`) que par la PR qui termine sa dernière sous-issue.
-  5. **Je relis la PR** : ne jamais la fusionner ni la fermer, et ne pas pousser d'autres changements sans mon accord ; corriger sur la même branche si je demande des modifications.
-  6. Je fusionne sur `main` (merge depuis GitHub) ; ensuite seulement : `git switch main && git pull`, et suppression de la branche locale fusionnée. Vérifier alors que l'issue est bien fermée (`gh issue view <n>`).
+  5. **Fusion par l'agent** : la PR reste obligatoire (c'est la trace de ce qui a été fait), mais je n'ai pas besoin de la relire. Une fois la **CI verte** sur le dernier commit, fusionner la PR soi-même (merge commit depuis GitHub, pas de squash ni de rebase). Tant que la PR n'est pas fusionnée, pousser librement sur sa branche les corrections de CI et de tests. Si je laisse un commentaire de revue, le traiter sur la même branche avant de fusionner.
+  6. Après la fusion : `git switch main && git pull`, suppression de la branche locale fusionnée, et vérifier que l'issue est bien fermée. Puis passer à l'issue suivante.
+  - **Ne jamais fusionner une PR dont la CI est rouge ou en cours.** Si une issue demande une décision qui n'est pas dans ce fichier, `GLOSSARY.md` ou `docs/adr/` (choix d'architecture, nouvelle dépendance, règle métier ambiguë) : ne pas deviner, poser la question en commentaire de l'issue, lui mettre le label `needs-info` et passer à une autre issue.
   - Une branche et une PR par issue / tranche. Pas de `push --force`, pas de `reset --hard`, pas de `git branch -f main` sans mon accord explicite.
 - Avant d'annoncer une tâche finie : tests de la partie touchée au vert (`./mvnw verify`, `npx ng test --no-watch`, `npx ng build`).
 - Ordre de construction : 1) socle (backend et frontend générés, `compose.yaml` complet avec les Dockerfiles et la CI) 2) schéma + entités 3) API candidatures, groupes, statuts 4) import Excel 5) écran liste (table, compteurs, filtres, alertes) 6) fiche, formulaire, changement de statut 7) groupes, pistes, écran d'import 8) `README.md` et recette finale en conteneurs (`docker compose up -d` sur `http://localhost:8090`).
