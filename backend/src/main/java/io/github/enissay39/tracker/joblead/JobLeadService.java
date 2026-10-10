@@ -1,7 +1,11 @@
 package io.github.enissay39.tracker.joblead;
 
+import java.util.List;
+
+import io.github.enissay39.tracker.common.ResourceNotFoundException;
 import io.github.enissay39.tracker.common.Texts;
 import io.github.enissay39.tracker.joblead.dto.JobLeadRequest;
+import io.github.enissay39.tracker.joblead.dto.JobLeadResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +17,44 @@ public class JobLeadService {
 
 	public JobLeadService(JobLeadRepository repository) {
 		this.repository = repository;
+	}
+
+	/**
+	 * Pistes par date de création : toutes, ou celles d'un état si {@code state} est donné.
+	 */
+	public List<JobLeadResponse> findAll(LeadState state) {
+		List<JobLead> leads = (state == null) ? repository.findAllByOrderByCreatedAtAscIdAsc()
+				: repository.findByStateOrderByCreatedAtAscIdAsc(state);
+		return leads.stream().map(JobLeadMapper::toResponse).toList();
+	}
+
+	/**
+	 * Une piste naît à évaluer.
+	 */
+	@Transactional
+	public JobLeadResponse create(JobLeadRequest request) {
+		JobLead lead = new JobLead(request.company().trim(), request.jobTitle().trim());
+		copyDetails(request, lead);
+		return JobLeadMapper.toResponse(repository.save(lead));
+	}
+
+	/**
+	 * Modifie les textes d'une piste, quel que soit son état ; l'état et le motif ne changent pas.
+	 */
+	@Transactional
+	public JobLeadResponse update(Long id, JobLeadRequest request) {
+		JobLead lead = findExisting(id);
+		lead.setCompany(request.company().trim());
+		lead.setJobTitle(request.jobTitle().trim());
+		copyDetails(request, lead);
+		// Écriture immédiate : la réponse porte la date de modification posée par l'entité
+		repository.saveAndFlush(lead);
+		return JobLeadMapper.toResponse(lead);
+	}
+
+	@Transactional
+	public void delete(Long id) {
+		repository.delete(findExisting(id));
 	}
 
 	/**
@@ -30,14 +72,23 @@ public class JobLeadService {
 	@Transactional
 	public void importLead(JobLeadRequest request, String discardReason) {
 		JobLead lead = new JobLead(request.company().trim(), request.jobTitle().trim());
-		lead.setPlannedCv(Texts.trimToNull(request.plannedCv()));
-		lead.setRemark(Texts.trimToNull(request.remark()));
+		copyDetails(request, lead);
 		String reason = Texts.trimToNull(discardReason);
 		if (reason != null) {
 			lead.setState(LeadState.DISCARDED);
 			lead.setDiscardReason(reason);
 		}
 		repository.save(lead);
+	}
+
+	private JobLead findExisting(Long id) {
+		return repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Piste " + id + " introuvable."));
+	}
+
+	// Textes facultatifs nettoyés, vides à null
+	private static void copyDetails(JobLeadRequest request, JobLead lead) {
+		lead.setPlannedCv(Texts.trimToNull(request.plannedCv()));
+		lead.setRemark(Texts.trimToNull(request.remark()));
 	}
 
 }
