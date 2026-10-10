@@ -30,7 +30,7 @@ export class ConfirmDialog {
 }
 
 /** Ouvre le dialogue ; émet `true` si l'utilisateur confirme, `false` sinon (annulation, Échap, clic dehors). */
-export function confirm(dialog: MatDialog, data: ConfirmDialogData): Observable<boolean> {
+export function openConfirmDialog(dialog: MatDialog, data: ConfirmDialogData): Observable<boolean> {
   return dialog
     .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, { data })
     .afterClosed()

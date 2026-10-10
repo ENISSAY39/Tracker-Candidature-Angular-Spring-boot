@@ -8,7 +8,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { filter, forkJoin, switchMap } from 'rxjs';
-import { confirm } from '../../../shared/confirm-dialog/confirm-dialog';
+import { openConfirmDialog } from '../../../shared/confirm-dialog/confirm-dialog';
 import { today } from '../../../shared/dates';
 import { DeadlineCell } from '../../../shared/deadline-cell/deadline-cell';
 import { StatusBadge } from '../../../shared/status-badge/status-badge';
@@ -59,7 +59,7 @@ export class ApplicationDetail {
   });
 
   protected delete(application: JobApplication): void {
-    confirm(this.dialog, {
+    openConfirmDialog(this.dialog, {
       title: 'Supprimer la candidature',
       message: `La candidature n° ${application.number} (${application.company}) sera supprimée définitivement.`,
       confirmLabel: 'Supprimer',
@@ -68,11 +68,15 @@ export class ApplicationDetail {
         filter(Boolean),
         switchMap(() => this.api.delete(application.id)),
       )
-      .subscribe(() => {
-        this.snackBar.open(`Candidature n° ${application.number} supprimée.`, 'Fermer', {
-          duration: 5000,
-        });
-        void this.router.navigate(['/applications']);
+      .subscribe({
+        next: () => {
+          this.snackBar.open(`Candidature n° ${application.number} supprimée.`, 'Fermer', {
+            duration: 5000,
+          });
+          void this.router.navigate(['/applications']);
+        },
+        // Échec déjà affiché par l'intercepteur : la fiche reste ouverte
+        error: () => undefined,
       });
   }
 }
