@@ -7,6 +7,10 @@ export const routes: Routes = [
       import('./features/applications/applications.routes').then((m) => m.APPLICATIONS_ROUTES),
   },
   {
+    path: 'groups',
+    loadChildren: () => import('./features/groups/groups.routes').then((m) => m.GROUPS_ROUTES),
+  },
+  {
     path: 'leads',
     loadChildren: () => import('./features/leads/leads.routes').then((m) => m.LEADS_ROUTES),
   },

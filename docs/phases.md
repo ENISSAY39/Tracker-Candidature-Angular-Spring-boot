@@ -88,7 +88,7 @@ Deux tranches, une branche et une PR chacune. Décisions et vocabulaire : `CLAUD
 
 ## Phase 7 — Groupes, pistes, écran d'import
 
-- [ ] Liste des groupes (`/groups`) et page d'un groupe (`/groups/:id`) : même liste filtrée, compteurs du groupe
+- [x] Liste des groupes (`/groups`) et page d'un groupe (`/groups/:id`) : même liste filtrée, compteurs du groupe
 - [ ] Renommage et suppression d'un groupe (gestion du 409)
 - [x] Backend `joblead` : CRUD, `GET /api/leads?state=`
 - [ ] « Promouvoir » : crée une candidature `TO_SEND` (groupe demandé) et supprime la piste dans la même transaction ; 409 sur une piste écartée
