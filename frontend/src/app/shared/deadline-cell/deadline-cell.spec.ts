@@ -17,7 +17,7 @@ describe('DeadlineCell', () => {
     expect(cell.textContent?.trim()).toBe('09/10/2026 (échéance dépassée)');
     expect(cell.querySelector('.cdk-visually-hidden')?.textContent).toContain('échéance dépassée');
     expect(cell.style.fontWeight).toBe('bold');
-    expect(cell.style.color).toBe('rgb(192, 0, 0)');
+    expect(cell.classList).toContain('overdue');
   });
 
   it('shows a date within three days in bold orange', async () => {
@@ -25,7 +25,7 @@ describe('DeadlineCell', () => {
 
     expect(cell.querySelector('.cdk-visually-hidden')?.textContent).toContain('échéance proche');
     expect(cell.style.fontWeight).toBe('bold');
-    expect(cell.style.color).toBe('rgb(180, 83, 9)');
+    expect(cell.classList).toContain('soon');
   });
 
   it('shows a later date without emphasis', async () => {
@@ -34,7 +34,7 @@ describe('DeadlineCell', () => {
     expect(cell.textContent?.trim()).toBe('14/10/2026');
     expect(cell.querySelector('.cdk-visually-hidden')).toBeNull();
     expect(cell.style.fontWeight).toBe('');
-    expect(cell.style.color).toBe('');
+    expect(cell.className).toBe('');
   });
 
   it('shows no alert on a closed application', async () => {

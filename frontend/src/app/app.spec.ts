@@ -29,6 +29,14 @@ describe('App', () => {
     expect(link?.textContent?.trim()).toBe('Candidatures');
   });
 
+  it('offers the theme choice in the title bar, on the system mode by default', async () => {
+    const page = await renderAt('/applications');
+
+    expect(page.querySelector('mat-toolbar button.theme')?.textContent?.trim()).toBe(
+      'Thème : Système',
+    );
+  });
+
   it('offers the groups in the navigation and opens their list', async () => {
     const page = await renderAt('/groups');
 

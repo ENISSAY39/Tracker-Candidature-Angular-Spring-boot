@@ -2,9 +2,6 @@ import { DatePipe } from '@angular/common';
 import { Component, computed, input } from '@angular/core';
 import { deadlineAlert } from '../deadline-alert';
 
-// Couleurs d'alerte de CLAUDE.md, contraste WCAG AA vérifié sur fond clair
-const ALERT_COLORS = { overdue: '#C00000', soon: '#B45309' } as const;
-
 // L'alerte ne doit pas reposer sur la couleur seule (WCAG 1.4.1) : texte lu par les lecteurs d'écran
 const ALERT_TEXTS = { overdue: 'échéance dépassée', soon: 'échéance proche' } as const;
 
@@ -16,9 +13,20 @@ const ALERT_TEXTS = { overdue: 'échéance dépassée', soon: 'échéance proche
     @if (alertText(); as text) {
       <span class="cdk-visually-hidden">({{ text }})</span>
     }`,
+  // Couleurs d'alerte de CLAUDE.md, contraste WCAG AA vérifié sur fond clair et sur fond sombre
+  styles: `
+    :host(.overdue) {
+      color: light-dark(#c00000, #ff8a80);
+    }
+
+    :host(.soon) {
+      color: light-dark(#b45309, #ffb74d);
+    }
+  `,
   host: {
     '[style.font-weight]': "alert() === 'none' ? null : 'bold'",
-    '[style.color]': 'color()',
+    '[class.overdue]': "alert() === 'overdue'",
+    '[class.soon]': "alert() === 'soon'",
   },
 })
 export class DeadlineCell {
@@ -34,10 +42,5 @@ export class DeadlineCell {
   protected readonly alertText = computed(() => {
     const alert = this.alert();
     return alert === 'none' ? null : ALERT_TEXTS[alert];
-  });
-
-  protected readonly color = computed(() => {
-    const alert = this.alert();
-    return alert === 'none' ? null : ALERT_COLORS[alert];
   });
 }

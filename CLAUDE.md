@@ -130,8 +130,8 @@ tracker-candidatures/
 - **Compteurs** : « Total » puis un compteur par catégorie non vide, dans l'ordre du tableau ; calculés côté front (`computed`) sur la liste affichée, globale ou d'un groupe.
 - **Tri par défaut** : ordre des catégories du tableau, puis `deadline_date` croissante (vides à la fin), puis `number`.
 - **Filtres de la liste** : catégorie ou statut, groupe, texte libre (entreprise, poste, notes), échéance dépassée ou sous 3 jours.
-- **Échéance** : à la saisie de `sent_on`, proposer `deadline_date = sent_on + 14 jours` si elle est vide (règle de relance, modifiable). Alerte sur la date : dépassée → gras `#C00000` ; d'aujourd'hui à J+3 → gras `#B45309`.
-- **Statuts clos** (`REJECTED`, `WITHDRAWN`) : `deadline_date` remise à `null`, ligne en gris `#6E6E6E`, aucune alerte.
+- **Échéance** : à la saisie de `sent_on`, proposer `deadline_date = sent_on + 14 jours` si elle est vide (règle de relance, modifiable). Alerte sur la date : dépassée → gras `#C00000` (`#FF8A80` en thème sombre) ; d'aujourd'hui à J+3 → gras `#B45309` (`#FFB74D` en thème sombre).
+- **Statuts clos** (`REJECTED`, `WITHDRAWN`) : `deadline_date` remise à `null`, ligne en gris `#6E6E6E` (`#A8A8A8` en thème sombre), aucune alerte.
 - **Transitions** : libres, pas de machine à états ; changement rapide depuis la liste via `PATCH …/status`. Si le nouveau statut exige une date d'envoi et que la candidature n'en a pas, le front la demande dans un dialogue (préremplie à aujourd'hui, avec l'échéance proposée à + 14 jours) et l'envoie dans le `PATCH` ; sans date, le backend répond 400 et ne lit jamais l'horloge du serveur. Revenir à `TO_SEND` conserve `sent_on` ; rouvrir un statut clos ne restaure pas `deadline_date`.
 - **Numéro** : le service lit `nextval` de la séquence et pose `number` à la création ; aucun `…Request` ne porte de `number`, seul l'import en impose un. Une création qui échoue laisse un trou dans la numérotation.
 - **Groupes** : le nom est nettoyé (espaces de début et de fin) avant toute recherche ou création, la recherche ignore la casse et la graphie du groupe existant est conservée ; seule l'action « Renommer » la change. Renommer vers un nom déjà pris → 409, pas de fusion. Un groupe vide reste jusqu'à sa suppression manuelle.
@@ -170,6 +170,7 @@ POST /import/excel                multipart `file`, option `?mode=replace`
 - Les règles Angular génériques sont dans `frontend/CLAUDE.md` (généré par le CLI) : ne pas les dupliquer ici. Fichiers sans suffixe de type (`applications-page.ts`, classe `ApplicationsPage`), créés avec `npx ng generate`.
 - Interface en français, libellés en dur (pas d'i18n), locale `fr-FR` (dates `dd/MM/yyyy`). Routes en anglais : `/applications`, `/applications/:id`, `/groups`, `/groups/:id`, `/leads`, `/import`.
 - Angular Material pour tous les composants (table triable, champs, datepicker, chips, dialog, snackbar). Couleurs via les variables `--mat-sys-*`, sauf la palette des statuts.
+- Thème : système (par défaut), clair ou sombre, choisi dans la barre de titre et gardé dans le `localStorage` (`core/theme.ts`) ; il pose `color-scheme` sur `<html>`. Toute couleur en dur doit avoir sa variante sombre (`light-dark()`).
 - Appels HTTP uniquement dans un service `…-api.ts` par feature, jamais dans un composant. Types TypeScript calqués sur les `…Response` du backend.
 - Dates sans heure : chaîne `yyyy-MM-dd` de bout en bout ; ne jamais passer par `toISOString()` (le fuseau décale d'un jour).
 - Dev : `proxy.conf.json` envoie `/api` vers `http://localhost:8081` ; aucune configuration CORS côté backend.
