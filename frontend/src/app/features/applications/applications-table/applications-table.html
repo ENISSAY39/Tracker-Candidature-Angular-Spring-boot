@@ -1,3 +1,12 @@
+<ul class="counters" aria-label="Compteurs par catégorie">
+  @for (counter of counters(); track counter.label) {
+    <li>
+      <span class="counter-label">{{ counter.label }}</span
+      >&nbsp;<span class="counter-count">{{ counter.count }}</span>
+    </li>
+  }
+</ul>
+
 <table mat-table [dataSource]="rows()" matSort (matSortChange)="sort.set($event)">
   <ng-container matColumnDef="number">
     <th mat-header-cell *matHeaderCellDef mat-sort-header>N°</th>
@@ -40,7 +49,9 @@
 
   <ng-container matColumnDef="deadlineDate">
     <th mat-header-cell *matHeaderCellDef mat-sort-header>Date échéance</th>
-    <td mat-cell *matCellDef="let row">{{ row.deadlineDate | date: 'dd/MM/yyyy' }}</td>
+    <td mat-cell *matCellDef="let row">
+      <app-deadline-cell [date]="row.deadlineDate" [closed]="isClosed(row)" [today]="today" />
+    </td>
   </ng-container>
 
   <ng-container matColumnDef="notes">

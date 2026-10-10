@@ -3,16 +3,20 @@ import { Component, computed, input, signal } from '@angular/core';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { today } from '../../../shared/dates';
+import { DeadlineCell } from '../../../shared/deadline-cell/deadline-cell';
 import { StatusBadge } from '../../../shared/status-badge/status-badge';
 import { isClosed, Status } from '../../../shared/status';
 import { JobApplication } from '../application';
+import { countApplications } from '../application-counters';
 import { sortApplications } from '../application-sort';
 
 /**
- * Table des candidatures reçues en entrée, triable par colonne ; sans tri choisi, ordre par défaut du classeur.
+ * Candidatures reçues en entrée : compteurs de la ligne 2 du classeur, puis table triable par colonne (sans tri
+ * choisi, ordre par défaut du classeur).
  */
 @Component({
-  imports: [DatePipe, MatSortModule, MatTableModule, MatTooltipModule, StatusBadge],
+  imports: [DatePipe, DeadlineCell, MatSortModule, MatTableModule, MatTooltipModule, StatusBadge],
   selector: 'app-applications-table',
   styleUrl: './applications-table.scss',
   templateUrl: './applications-table.html',
@@ -32,6 +36,13 @@ export class ApplicationsTable {
     'deadlineDate',
     'notes',
   ];
+
+  /** Jour de référence des alertes d'échéance, lu une fois à l'affichage. */
+  protected readonly today = today();
+
+  protected readonly counters = computed(() =>
+    countApplications(this.applications(), this.statuses()),
+  );
 
   protected readonly sort = signal<Sort>({ active: '', direction: '' });
 
