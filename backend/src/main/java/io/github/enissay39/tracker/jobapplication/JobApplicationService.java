@@ -56,6 +56,14 @@ public class JobApplicationService {
 	}
 
 	/**
+	 * Supprime toutes les candidatures. Réservé à l'import en mode remplacement.
+	 */
+	@Transactional
+	public void deleteAll() {
+		repository.deleteAllInBatch();
+	}
+
+	/**
 	 * Le prochain numéro attribué sera le plus grand numéro en base + 1.
 	 */
 	@Transactional

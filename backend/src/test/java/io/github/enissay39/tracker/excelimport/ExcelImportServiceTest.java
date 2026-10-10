@@ -62,7 +62,7 @@ class ExcelImportServiceTest {
 				application(3, "Autre Groupe", "À envoyer", null), application(12, "Groupe Fictif", "Refus",
 						LocalDate.of(2026, 9, 1)));
 
-		ImportResultResponse result = service.importWorkbook(workbook.toInputStream());
+		ImportResultResponse result = service.importWorkbook(workbook.toInputStream(), ImportMode.INITIAL);
 
 		assertThat(result).isEqualTo(new ImportResultResponse(2, 3, 0));
 		JobApplication imported = byNumber(26);
@@ -84,7 +84,7 @@ class ExcelImportServiceTest {
 		service.importWorkbook(new TestWorkbook()
 			.applications(application(40, "Groupe Fictif", "À envoyer", null), application(7, "Groupe Fictif",
 					"À envoyer", null))
-			.toInputStream());
+			.toInputStream(), ImportMode.INITIAL);
 
 		assertThat(applicationRepository.nextNumber()).isEqualTo(41);
 	}
@@ -94,7 +94,7 @@ class ExcelImportServiceTest {
 		ImportResultResponse result = service.importWorkbook(new TestWorkbook()
 			.applications(application(1, "Groupe Fictif", "À envoyer", null),
 					application(2, "  GROUPE fictif ", "À envoyer", null), application(3, "Autre", "À envoyer", null))
-			.toInputStream());
+			.toInputStream(), ImportMode.INITIAL);
 
 		assertThat(result.companyGroups()).isEqualTo(2);
 		assertThat(groupRepository.findAllOrderedByName()).extracting(CompanyGroup::getName)
@@ -106,7 +106,7 @@ class ExcelImportServiceTest {
 		service.importWorkbook(new TestWorkbook()
 			.applications(application(1, "Groupe Fictif", "Fictif Aéro", "Stagiaire", "Abandonnée", null, "   ",
 					LocalDate.of(2026, 10, 18), "", null, " ", null))
-			.toInputStream());
+			.toInputStream(), ImportMode.INITIAL);
 
 		JobApplication imported = byNumber(1);
 		assertThat(imported.getDeadlineDate()).isNull();
@@ -121,7 +121,7 @@ class ExcelImportServiceTest {
 		service.importWorkbook(new TestWorkbook()
 			.applications(headers, new Object[] { 5, "Entretien", "Stagiaire data", "Fictif Data", "Groupe Fictif",
 					LocalDate.of(2026, 9, 20), "JobTeaser" })
-			.toInputStream());
+			.toInputStream(), ImportMode.INITIAL);
 
 		JobApplication imported = byNumber(5);
 		assertThat(imported.getStatus()).isEqualTo(ApplicationStatus.INTERVIEW);
@@ -139,7 +139,7 @@ class ExcelImportServiceTest {
 					application(3, "Groupe Fictif", "À envoyer", null))
 			.sheet("Groupe Fictif", new Object[] { "#", "Entreprise" }, new Object[] { 9, "Fictif Aéro" })
 			.sheet("Autres", new Object[] { "#", "Entreprise" }, new Object[] { 10, "Fictif Ferroviaire" })
-			.toInputStream());
+			.toInputStream(), ImportMode.INITIAL);
 
 		assertThat(result.jobApplications()).isEqualTo(1);
 		assertThat(applicationRepository.findAllWithCompanyGroup()).extracting(JobApplication::getNumber)
@@ -151,7 +151,7 @@ class ExcelImportServiceTest {
 		TestWorkbook workbook = new TestWorkbook().applications(application(1, "Groupe Fictif", "À envoyer", null),
 				application("Total", "Groupe Fictif", "À envoyer", null));
 
-		assertThatThrownBy(() -> service.importWorkbook(workbook.toInputStream()))
+		assertThatThrownBy(() -> service.importWorkbook(workbook.toInputStream(), ImportMode.INITIAL))
 			.isInstanceOf(InvalidRequestException.class)
 			.hasMessage("Import refusé : feuille « Toutes les candidatures », ligne 5 : numéro « Total » invalide.");
 		assertThat(applicationRepository.count()).isZero();
@@ -162,7 +162,7 @@ class ExcelImportServiceTest {
 		List<String> headers = List.of("#", "Groupe", "Entreprise", "Poste", "Statut", "Début");
 		service.importWorkbook(new TestWorkbook()
 			.applications(headers, new Object[] { 1, "Groupe Fictif", "Fictif Aéro", "Stagiaire", "À envoyer", 2027 })
-			.toInputStream());
+			.toInputStream(), ImportMode.INITIAL);
 
 		assertThat(byNumber(1).getStartPeriod()).isEqualTo("2027");
 	}
@@ -170,11 +170,11 @@ class ExcelImportServiceTest {
 	@Test
 	void refusesToImportIntoADatabaseThatAlreadyHasApplicationsAndWritesNothing() {
 		service.importWorkbook(new TestWorkbook().applications(application(1, "Groupe Fictif", "À envoyer", null))
-			.toInputStream());
+			.toInputStream(), ImportMode.INITIAL);
 
 		assertThatThrownBy(() -> service.importWorkbook(new TestWorkbook()
 			.applications(application(2, "Autre Groupe", "À envoyer", null))
-			.toInputStream())).isInstanceOf(ConflictException.class)
+			.toInputStream(), ImportMode.INITIAL)).isInstanceOf(ConflictException.class)
 			.hasMessage("La base contient déjà des candidatures : l'import est refusé.");
 		assertThat(applicationRepository.findAllWithCompanyGroup()).extracting(JobApplication::getNumber,
 				application -> application.getCompanyGroup().getName())

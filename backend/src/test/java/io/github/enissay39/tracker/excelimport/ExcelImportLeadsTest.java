@@ -55,7 +55,7 @@ class ExcelImportLeadsTest {
 					new Object[] { "Fictif Data", "Stagiaire data" })
 			.discarded(new Object[] { "Fictif Ferroviaire", "Stagiaire embarqué", "CV_Test.pdf", "Remarque fictive",
 					"Trop loin de Ville-Test" })
-			.toInputStream());
+			.toInputStream(), ImportMode.INITIAL);
 
 		assertThat(result).isEqualTo(new ImportResultResponse(1, 1, 3));
 		assertThat(leadRepository.findByState(LeadState.TO_EVALUATE))
@@ -77,7 +77,7 @@ class ExcelImportLeadsTest {
 					new Object[] { "Fictif Data", "Stagiaire data" })
 			.leads(TestWorkbook.DISCARDED_SHEET, List.of("Entreprise", "Poste", "Motif"),
 					new Object[] { "Fictif Spatial", "Stagiaire DevOps", "Poste pourvu" })
-			.toInputStream());
+			.toInputStream(), ImportMode.INITIAL);
 
 		assertThat(result.jobLeads()).isEqualTo(3);
 		assertThat(leadRepository.findByState(LeadState.DISCARDED)).extracting(JobLead::getDiscardReason)
@@ -110,7 +110,7 @@ class ExcelImportLeadsTest {
 	}
 
 	private void assertRejected(TestWorkbook workbook, String message) {
-		assertThatThrownBy(() -> service.importWorkbook(workbook.toInputStream()))
+		assertThatThrownBy(() -> service.importWorkbook(workbook.toInputStream(), ImportMode.INITIAL))
 			.isInstanceOf(InvalidRequestException.class)
 			.hasMessage(message);
 		assertThat(applicationRepository.count()).isZero();

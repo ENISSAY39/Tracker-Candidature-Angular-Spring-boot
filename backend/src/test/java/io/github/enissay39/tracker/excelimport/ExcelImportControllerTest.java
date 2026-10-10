@@ -2,6 +2,7 @@ package io.github.enissay39.tracker.excelimport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -31,7 +32,7 @@ class ExcelImportControllerTest {
 
 	@Test
 	void importGives200WithTheNumberOfCreatedRowsPerTable() {
-		when(service.importWorkbook(any())).thenReturn(new ImportResultResponse(4, 37, 0));
+		when(service.importWorkbook(any(), eq(ImportMode.INITIAL))).thenReturn(new ImportResultResponse(4, 37, 0));
 
 		assertThat(mvc.post().uri("/api/import/excel").multipart().file(WORKBOOK)).hasStatusOk()
 			.bodyJson()
@@ -42,7 +43,7 @@ class ExcelImportControllerTest {
 
 	@Test
 	void importIntoANonEmptyDatabaseGives409ProblemDetail() {
-		when(service.importWorkbook(any()))
+		when(service.importWorkbook(any(), eq(ImportMode.INITIAL)))
 			.thenThrow(new ConflictException("La base contient déjà des candidatures : l'import est refusé."));
 
 		assertThat(mvc.post().uri("/api/import/excel").multipart().file(WORKBOOK)).hasStatus(HttpStatus.CONFLICT)
@@ -55,7 +56,7 @@ class ExcelImportControllerTest {
 
 	@Test
 	void aRejectedWorkbookGives400ProblemDetail() {
-		when(service.importWorkbook(any())).thenThrow(new InvalidRequestException(
+		when(service.importWorkbook(any(), eq(ImportMode.INITIAL))).thenThrow(new InvalidRequestException(
 				"Import refusé : feuille « Toutes les candidatures », ligne 7 : statut « Envoyée » inconnu."));
 
 		assertThat(mvc.post().uri("/api/import/excel").multipart().file(WORKBOOK)).hasStatus(HttpStatus.BAD_REQUEST)
@@ -80,6 +81,28 @@ class ExcelImportControllerTest {
 			.bodyJson()
 			.isLenientlyEqualTo("""
 					{"status": 400, "detail": "Aucun fichier n'a été envoyé."}
+					""");
+		verifyNoInteractions(service);
+	}
+
+	@Test
+	void importWithModeReplaceAsksForAReplacement() {
+		when(service.importWorkbook(any(), eq(ImportMode.REPLACE))).thenReturn(new ImportResultResponse(3, 40, 5));
+
+		assertThat(mvc.post().uri("/api/import/excel?mode=replace").multipart().file(WORKBOOK)).hasStatusOk()
+			.bodyJson()
+			.isStrictlyEqualTo("""
+					{"companyGroups": 3, "jobApplications": 40, "jobLeads": 5}
+					""");
+	}
+
+	@Test
+	void anUnknownModeGives400() {
+		assertThat(mvc.post().uri("/api/import/excel?mode=merge").multipart().file(WORKBOOK))
+			.hasStatus(HttpStatus.BAD_REQUEST)
+			.bodyJson()
+			.isLenientlyEqualTo("""
+					{"status": 400, "detail": "Mode d'import « merge » inconnu : seul « replace » est accepté."}
 					""");
 		verifyNoInteractions(service);
 	}

@@ -16,6 +16,14 @@ public class JobLeadService {
 	}
 
 	/**
+	 * Supprime toutes les pistes. Réservé à l'import en mode remplacement.
+	 */
+	@Transactional
+	public void deleteAll() {
+		repository.deleteAllInBatch();
+	}
+
+	/**
 	 * Piste lue dans le classeur : à évaluer, ou écartée si un motif est donné. Textes nettoyés, vides à
 	 * {@code null}.
 	 */

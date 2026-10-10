@@ -23,13 +23,14 @@ public class ExcelImportController {
 	}
 
 	@PostMapping(path = "/excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ImportResultResponse importExcel(@RequestParam(name = "file", required = false) MultipartFile file)
-			throws IOException {
+	public ImportResultResponse importExcel(@RequestParam(name = "file", required = false) MultipartFile file,
+			@RequestParam(name = "mode", required = false) String mode) throws IOException {
+		ImportMode importMode = ImportMode.fromParameter(mode);
 		if (file == null || file.isEmpty()) {
 			throw new InvalidRequestException("Aucun fichier n'a été envoyé.");
 		}
 		try (InputStream input = file.getInputStream()) {
-			return service.importWorkbook(input);
+			return service.importWorkbook(input, importMode);
 		}
 	}
 

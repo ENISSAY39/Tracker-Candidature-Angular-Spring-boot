@@ -151,7 +151,7 @@ class ExcelImportRejectionTest {
 	}
 
 	private void assertRejected(InputStream input, String message) {
-		assertThatThrownBy(() -> service.importWorkbook(input)).isInstanceOf(InvalidRequestException.class)
+		assertThatThrownBy(() -> service.importWorkbook(input, ImportMode.INITIAL)).isInstanceOf(InvalidRequestException.class)
 			.hasMessage(message);
 		assertThat(applicationRepository.count()).isZero();
 		assertThat(groupRepository.count()).isZero();
