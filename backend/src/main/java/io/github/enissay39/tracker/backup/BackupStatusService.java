@@ -25,7 +25,10 @@ public class BackupStatusService {
 	private static final Pattern BACKUP_FILE_NAME = Pattern
 		.compile("tracker-[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4}([0-9]{2})?[.]sql");
 
-	private static final BackupStatusResponse UNAVAILABLE = new BackupStatusResponse(false, null);
+	private static final BackupStatusResponse UNAVAILABLE = new BackupStatusResponse(false, null, false);
+
+	// Posé par scripts/backup.sh après un échec, retiré après une sauvegarde réussie
+	private static final String FAILURE_MARKER = ".last-backup-failed";
 
 	private final Path directory;
 
@@ -35,8 +38,8 @@ public class BackupStatusService {
 
 	/**
 	 * Date de modification de la sauvegarde la plus récente, comme le {@code healthcheck} du service
-	 * {@code backup} : le nom du fichier porte une heure locale, sans fuseau. Un dossier absent ou illisible
-	 * donne un état indisponible, jamais une erreur.
+	 * {@code backup} : le nom du fichier porte une heure locale, sans fuseau. La dernière tentative a échoué quand
+	 * le marqueur d'échec est présent. Un dossier absent ou illisible donne un état indisponible, jamais une erreur.
 	 */
 	public BackupStatusResponse status() {
 		if (!Files.isDirectory(directory)) {
@@ -54,7 +57,7 @@ public class BackupStatusService {
 		catch (IOException | DirectoryIteratorException | SecurityException ex) {
 			return UNAVAILABLE;
 		}
-		return new BackupStatusResponse(true, latest);
+		return new BackupStatusResponse(true, latest, Files.exists(directory.resolve(FAILURE_MARKER)));
 	}
 
 	private static Instant backupTime(Path file) {

@@ -4,8 +4,8 @@ describe('backup status', () => {
   // Samedi 10 octobre 2026, 16:00, heure locale
   const now = new Date(2026, 9, 10, 16, 0);
 
-  function backedUpAt(date: Date): BackupStatus {
-    return { available: true, lastBackupAt: date.toISOString() };
+  function backedUpAt(date: Date, lastAttemptFailed = false): BackupStatus {
+    return { available: true, lastBackupAt: date.toISOString(), lastAttemptFailed };
   }
 
   describe('backupAlert', () => {
@@ -20,11 +20,23 @@ describe('backup status', () => {
     });
 
     it('is missing when the folder holds no backup', () => {
-      expect(backupAlert({ available: true, lastBackupAt: null }, now)).toBe('missing');
+      expect(
+        backupAlert({ available: true, lastBackupAt: null, lastAttemptFailed: false }, now),
+      ).toBe('missing');
+    });
+
+    it('is failed when the last attempt failed, whatever the age of the last backup', () => {
+      expect(backupAlert(backedUpAt(new Date(2026, 9, 10, 15, 59), true), now)).toBe('failed');
+      expect(backupAlert(backedUpAt(new Date(2026, 9, 7, 23, 17), true), now)).toBe('failed');
+      expect(
+        backupAlert({ available: true, lastBackupAt: null, lastAttemptFailed: true }, now),
+      ).toBe('failed');
     });
 
     it('is none when the folder is unavailable or the status unknown', () => {
-      expect(backupAlert({ available: false, lastBackupAt: null }, now)).toBe('none');
+      expect(
+        backupAlert({ available: false, lastBackupAt: null, lastAttemptFailed: false }, now),
+      ).toBe('none');
       expect(backupAlert(null, now)).toBe('none');
     });
   });
@@ -51,14 +63,28 @@ describe('backup status', () => {
       );
     });
 
+    it('says when the last attempt failed', () => {
+      expect(backupLabel(backedUpAt(new Date(2026, 9, 9, 14, 32), true), now)).toBe(
+        'Dernière sauvegarde : hier 14:32 (dernière tentative en échec)',
+      );
+      expect(backupLabel(backedUpAt(new Date(2026, 9, 7, 23, 17), true), now)).toBe(
+        'Dernière sauvegarde : 07/10/2026 23:17 (plus de 48 h, dernière tentative en échec)',
+      );
+      expect(
+        backupLabel({ available: true, lastBackupAt: null, lastAttemptFailed: true }, now),
+      ).toBe('Aucune sauvegarde (dernière tentative en échec)');
+    });
+
     it('says so when there is no backup', () => {
-      expect(backupLabel({ available: true, lastBackupAt: null }, now)).toBe('Aucune sauvegarde');
+      expect(
+        backupLabel({ available: true, lastBackupAt: null, lastAttemptFailed: false }, now),
+      ).toBe('Aucune sauvegarde');
     });
 
     it('says so when the folder is unavailable or the status unknown', () => {
-      expect(backupLabel({ available: false, lastBackupAt: null }, now)).toBe(
-        'Sauvegarde : état indisponible',
-      );
+      expect(
+        backupLabel({ available: false, lastBackupAt: null, lastAttemptFailed: false }, now),
+      ).toBe('Sauvegarde : état indisponible');
       expect(backupLabel(null, now)).toBe('Sauvegarde : état indisponible');
     });
   });

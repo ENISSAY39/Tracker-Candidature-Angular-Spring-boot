@@ -23,28 +23,37 @@ class BackupStatusControllerTest {
 
 	@Test
 	void statusGivesTheTimeOfTheMostRecentBackup() {
-		when(service.status()).thenReturn(new BackupStatusResponse(true, Instant.parse("2026-10-09T12:32:05Z")));
+		when(service.status()).thenReturn(new BackupStatusResponse(true, Instant.parse("2026-10-09T12:32:05Z"), false));
 
 		assertThat(mvc.get().uri("/api/backup/status")).hasStatusOk().bodyJson().isStrictlyEqualTo("""
-				{"available": true, "lastBackupAt": "2026-10-09T12:32:05Z"}
+				{"available": true, "lastBackupAt": "2026-10-09T12:32:05Z", "lastAttemptFailed": false}
+				""");
+	}
+
+	@Test
+	void statusSaysWhenTheLastAttemptFailed() {
+		when(service.status()).thenReturn(new BackupStatusResponse(true, Instant.parse("2026-10-09T12:32:05Z"), true));
+
+		assertThat(mvc.get().uri("/api/backup/status")).hasStatusOk().bodyJson().isStrictlyEqualTo("""
+				{"available": true, "lastBackupAt": "2026-10-09T12:32:05Z", "lastAttemptFailed": true}
 				""");
 	}
 
 	@Test
 	void statusGivesNoTimeWithoutAnyBackup() {
-		when(service.status()).thenReturn(new BackupStatusResponse(true, null));
+		when(service.status()).thenReturn(new BackupStatusResponse(true, null, false));
 
 		assertThat(mvc.get().uri("/api/backup/status")).hasStatusOk().bodyJson().isStrictlyEqualTo("""
-				{"available": true, "lastBackupAt": null}
+				{"available": true, "lastBackupAt": null, "lastAttemptFailed": false}
 				""");
 	}
 
 	@Test
 	void statusIsNotAnErrorWhenTheDirectoryIsUnavailable() {
-		when(service.status()).thenReturn(new BackupStatusResponse(false, null));
+		when(service.status()).thenReturn(new BackupStatusResponse(false, null, false));
 
 		assertThat(mvc.get().uri("/api/backup/status")).hasStatusOk().bodyJson().isStrictlyEqualTo("""
-				{"available": false, "lastBackupAt": null}
+				{"available": false, "lastBackupAt": null, "lastAttemptFailed": false}
 				""");
 	}
 

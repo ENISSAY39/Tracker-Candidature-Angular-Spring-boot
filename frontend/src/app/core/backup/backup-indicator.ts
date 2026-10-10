@@ -8,8 +8,8 @@ import { backupAlert, backupLabel } from './backup-status';
 const REFRESH_MS = 60 * 60 * 1000;
 
 /**
- * Date de la dernière sauvegarde dans la barre de titre, en alerte quand elle est trop ancienne ou qu'il n'y en
- * a aucune. Affichage seul : sauvegarder et restaurer restent des commandes.
+ * Date de la dernière sauvegarde dans la barre de titre, en alerte quand elle est trop ancienne, qu'il n'y en a
+ * aucune ou que la dernière tentative a échoué. Affichage seul : sauvegarder et restaurer restent des commandes.
  */
 @Component({
   selector: 'app-backup-indicator',
