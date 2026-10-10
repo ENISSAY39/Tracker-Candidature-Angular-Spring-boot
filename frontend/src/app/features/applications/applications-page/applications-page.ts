@@ -7,6 +7,7 @@ import { forkJoin } from 'rxjs';
 import { JobApplication } from '../application';
 import { ApplicationsApi } from '../applications-api';
 import { ApplicationsList } from '../applications-list/applications-list';
+import { replaceApplication } from '../replace-application';
 
 @Component({
   imports: [ApplicationsList, MatButtonModule, MatProgressBarModule, RouterLink],
@@ -56,9 +57,7 @@ export class ApplicationsPage {
       (loaded) =>
         loaded && {
           ...loaded,
-          applications: loaded.applications.map((application) =>
-            application.id === updated.id ? updated : application,
-          ),
+          applications: replaceApplication(loaded.applications, updated),
         },
     );
   }
