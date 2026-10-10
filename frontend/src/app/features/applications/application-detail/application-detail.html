@@ -57,6 +57,7 @@
   </section>
 
   <div class="actions">
+    <a mat-flat-button [routerLink]="['/applications', application.id, 'edit']">Modifier</a>
     <button mat-stroked-button type="button" (click)="delete(application)">Supprimer</button>
   </div>
 }

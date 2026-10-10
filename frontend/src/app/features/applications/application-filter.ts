@@ -1,5 +1,6 @@
 import { deadlineAlert } from '../../shared/deadline-alert';
 import { isClosed, Status, StatusCategoryCode } from '../../shared/status';
+import { foldText } from '../../shared/text';
 import { JobApplication } from './application';
 
 /** Choix de la liste déroulante des statuts : une catégorie entière ou un seul statut. */
@@ -30,7 +31,7 @@ export function filterApplications(
   today: string,
 ): JobApplication[] {
   const statusByCode = new Map(statuses.map((status) => [status.code, status]));
-  const searched = normalize(filter.text.trim());
+  const searched = foldText(filter.text.trim());
   return applications.filter((application) => {
     const status = statusByCode.get(application.status);
     return (
@@ -65,13 +66,5 @@ function hasDeadlineAlert(
 }
 
 function searchableText(application: JobApplication): string {
-  return normalize([application.company, application.jobTitle, application.notes ?? ''].join('\n'));
-}
-
-// Minuscules sans accents : « Évaluation » et « evaluation » se trouvent l'un l'autre
-function normalize(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLocaleLowerCase('fr');
+  return foldText([application.company, application.jobTitle, application.notes ?? ''].join('\n'));
 }

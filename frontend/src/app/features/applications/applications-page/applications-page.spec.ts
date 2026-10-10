@@ -96,6 +96,13 @@ describe('ApplicationsPage', () => {
     expect(page().querySelector('[role="progressbar"]')).toBeNull();
   });
 
+  it('offers to create a new application', async () => {
+    await respond([]);
+
+    const link = page().querySelector('a[href="/applications/new"]');
+    expect(link?.textContent?.trim()).toBe('Nouvelle candidature');
+  });
+
   it('says so when there is no application yet', async () => {
     await respond([]);
 

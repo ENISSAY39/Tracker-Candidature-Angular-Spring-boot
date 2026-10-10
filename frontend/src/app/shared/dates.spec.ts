@@ -1,4 +1,4 @@
-import { addDays, compareDates, today } from './dates';
+import { addDays, compareDates, fromDay, toDay, today } from './dates';
 
 describe('dates', () => {
   describe('today', () => {
@@ -46,6 +46,15 @@ describe('dates', () => {
       expect(compareDates('2026-09-30', '2026-10-01')).toBeLessThan(0);
       expect(compareDates('2027-01-01', '2026-12-31')).toBeGreaterThan(0);
       expect(compareDates('2026-10-04', '2026-10-04')).toBe(0);
+    });
+  });
+
+  describe('toDay and fromDay', () => {
+    it('turn a picked date into its local day and back, without shifting a day', () => {
+      expect(toDay(new Date(2026, 9, 4))).toBe('2026-10-04');
+      expect(toDay(new Date(2026, 11, 31, 23, 59))).toBe('2026-12-31');
+      expect(fromDay('2026-10-04')).toEqual(new Date(2026, 9, 4));
+      expect(toDay(fromDay('2027-02-28'))).toBe('2027-02-28');
     });
   });
 });

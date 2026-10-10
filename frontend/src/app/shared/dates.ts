@@ -5,7 +5,18 @@
 
 /** Jour local de `now` au format `yyyy-MM-dd`. */
 export function today(now: Date = new Date()): string {
-  return format(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  return toDay(now);
+}
+
+/** Jour local d'une date (par exemple choisie au datepicker), par ses composantes année, mois, jour. */
+export function toDay(date: Date): string {
+  return format(date.getFullYear(), date.getMonth() + 1, date.getDate());
+}
+
+/** Date locale à minuit pour un jour `yyyy-MM-dd`, telle que l'attend le datepicker. */
+export function fromDay(day: string): Date {
+  const [year, month, date] = day.split('-').map(Number);
+  return new Date(year, month - 1, date);
 }
 
 /** `date` décalée de `days` jours (négatif pour reculer). */

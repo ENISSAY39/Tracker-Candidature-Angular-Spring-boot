@@ -1,0 +1,173 @@
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Chargement du formulaire" />
+} @else if (failed()) {
+  <h1>Formulaire indisponible</h1>
+  <p>Les données du formulaire n’ont pas pu être chargées.</p>
+  <a mat-button routerLink="/applications">Retour à la liste</a>
+} @else {
+  @if (existing.value(); as application) {
+    <h1>Modifier la candidature n° {{ application.number }}</h1>
+  } @else {
+    <h1>Nouvelle candidature</h1>
+  }
+
+  <form novalidate (submit)="save($event)">
+    <div class="row">
+      <mat-form-field>
+        <mat-label>Groupe</mat-label>
+        <input
+          matInput
+          aria-label="Groupe"
+          [formField]="form.groupName"
+          [matAutocomplete]="groupAutocomplete"
+        />
+        <mat-autocomplete #groupAutocomplete="matAutocomplete">
+          @for (name of groupSuggestions(); track name) {
+            <mat-option [value]="name">{{ name }}</mat-option>
+          }
+        </mat-autocomplete>
+        <mat-hint>Un nom nouveau crée le groupe.</mat-hint>
+        @for (error of form.groupName().errors(); track $index) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Statut</mat-label>
+        <mat-select
+          aria-label="Statut"
+          [formField]="form.status"
+          (selectionChange)="onStatusChange()"
+        >
+          @for (group of statusGroups(); track group.category.code) {
+            <mat-optgroup [label]="group.category.label">
+              @for (status of group.statuses; track status.code) {
+                <mat-option [value]="status.code">{{ status.label }}</mat-option>
+              }
+            </mat-optgroup>
+          }
+        </mat-select>
+        @for (error of form.status().errors(); track $index) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field class="wide">
+      <mat-label>Entreprise</mat-label>
+      <input matInput aria-label="Entreprise" [formField]="form.company" />
+      @for (error of form.company().errors(); track $index) {
+        <mat-error>{{ error.message }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="wide">
+      <mat-label>Poste</mat-label>
+      <input matInput aria-label="Poste" [formField]="form.jobTitle" />
+      @for (error of form.jobTitle().errors(); track $index) {
+        <mat-error>{{ error.message }}</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="row">
+      <mat-form-field>
+        <mat-label>Envoyée le</mat-label>
+        <input
+          matInput
+          aria-label="Envoyée le"
+          placeholder="jj/mm/aaaa"
+          [matDatepicker]="sentOnPicker"
+          [formField]="form.sentOn"
+          (dateChange)="onSentOnChange()"
+        />
+        <mat-datepicker-toggle matIconSuffix [for]="sentOnPicker" />
+        <mat-datepicker #sentOnPicker />
+        @for (error of form.sentOn().errors(); track $index) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Échéance</mat-label>
+        <input
+          matInput
+          aria-label="Échéance"
+          placeholder="Relance le 18/10"
+          [formField]="form.deadlineLabel"
+        />
+        @for (error of form.deadlineLabel().errors(); track $index) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Date échéance</mat-label>
+        <input
+          matInput
+          aria-label="Date échéance"
+          placeholder="jj/mm/aaaa"
+          [matDatepicker]="deadlinePicker"
+          [formField]="form.deadlineDate"
+        />
+        <mat-datepicker-toggle matIconSuffix [for]="deadlinePicker" />
+        <mat-datepicker #deadlinePicker />
+        <mat-hint>Proposée à l’envoi + 14 jours.</mat-hint>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field class="wide">
+      <mat-label>Prochaine action</mat-label>
+      <textarea matInput aria-label="Prochaine action" rows="6" [formField]="form.notes"></textarea>
+    </mat-form-field>
+
+    <div class="row">
+      <mat-form-field>
+        <mat-label>Début</mat-label>
+        <input
+          matInput
+          aria-label="Début"
+          placeholder="Févr. 2027, 6 mois"
+          [formField]="form.startPeriod"
+        />
+        @for (error of form.startPeriod().errors(); track $index) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Canal</mat-label>
+        <input
+          matInput
+          aria-label="Canal"
+          [formField]="form.channel"
+          [matAutocomplete]="channelAutocomplete"
+        />
+        <mat-autocomplete #channelAutocomplete="matAutocomplete">
+          @for (channel of channelSuggestions(); track channel) {
+            <mat-option [value]="channel">{{ channel }}</mat-option>
+          }
+        </mat-autocomplete>
+        @for (error of form.channel().errors(); track $index) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>CV envoyé</mat-label>
+        <input matInput aria-label="CV envoyé" [formField]="form.cvSent" />
+        @for (error of form.cvSent().errors(); track $index) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="actions">
+      @if (existing.value(); as application) {
+        <a mat-button [routerLink]="['/applications', application.id]">Annuler</a>
+      } @else {
+        <a mat-button routerLink="/applications">Annuler</a>
+      }
+      <button mat-flat-button type="submit">Enregistrer</button>
+    </div>
+  </form>
+}

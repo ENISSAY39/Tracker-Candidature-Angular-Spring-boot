@@ -106,6 +106,14 @@ describe('ApplicationDetail', () => {
     expect(field(page, 'CV envoyé')).toBe('CV_Test.pdf, LM_Test.pdf');
   });
 
+  it('offers to edit the application', async () => {
+    const page = await open(5, APPLICATION);
+
+    expect(page.querySelector('a[href="/applications/5/edit"]')?.textContent?.trim()).toBe(
+      'Modifier',
+    );
+  });
+
   it('shows the whole notes with their line breaks', async () => {
     const page = await open(5, APPLICATION);
 
