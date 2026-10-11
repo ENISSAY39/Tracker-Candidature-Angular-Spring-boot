@@ -128,7 +128,7 @@ cd frontend && npm ci && npm start            # http://localhost:4200, proxy /ap
 - L'API locale écoute sur **8081**, le port 8080 étant pris sur le poste de dev ; dans son conteneur, elle écoute sur 8080.
 - `spring-boot:run` et `npm start` sont bloquants : un terminal chacun.
 - Le proxy (`frontend/proxy.conf.json`) évite toute configuration CORS.
-- L'API locale lit les sauvegardes dans `../data/backups` (propriété `tracker.backup.directory`). Si `BACKUP_DIR` vise un autre dossier, donnez-le aussi à l'API : `TRACKER_BACKUP_DIRECTORY=/chemin ./mvnw spring-boot:run`. Dossier absent : la barre de titre affiche « Sauvegarde : état indisponible », sans alerte, car en local l'API ne voit pas forcément le dossier (propriété `tracker.backup.required`, faux par défaut ; les conteneurs la passent à vrai, et un dossier illisible y met alors l'indicateur en alerte).
+- L'API locale lit les sauvegardes dans `../data/backups` (propriété `tracker.backup.directory`). Si `BACKUP_DIR` vise un autre dossier, donnez-le aussi à l'API : `TRACKER_BACKUP_DIRECTORY=/chemin ./mvnw spring-boot:run`. Dossier absent : la barre de titre affiche « Sauvegarde : état indisponible », sans alerte, car en local l'API ne voit pas forcément le dossier (propriété `tracker.backup.required`, faux par défaut ; `compose.yaml` la passe à vrai pour le conteneur `backend` par `TRACKER_BACKUP_REQUIRED`, et un dossier illisible y met alors l'indicateur en alerte).
 
 Tests et build :
 

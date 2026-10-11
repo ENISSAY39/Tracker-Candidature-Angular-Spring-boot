@@ -1,4 +1,4 @@
-import { BackupStatus, backupAlert, backupAnnouncement, backupLabel } from './backup-status';
+import { BackupStatus, backupAlert, backupLabel, trackAlert } from './backup-status';
 
 describe('backup status', () => {
   // Samedi 10 octobre 2026, 16:00, heure locale
@@ -130,27 +130,54 @@ describe('backup status', () => {
     });
   });
 
-  describe('backupAnnouncement', () => {
+  describe('trackAlert', () => {
+    const start = { knownAlert: null, announcement: '' };
     const label = 'Aucune sauvegarde';
 
     it('announces nothing on the first reading, alert or not', () => {
-      expect(backupAnnouncement(null, false, label)).toBe('');
-      expect(backupAnnouncement(null, true, label)).toBe('');
+      expect(trackAlert(start, { alert: false, label })).toEqual({
+        knownAlert: false,
+        announcement: '',
+      });
+      expect(trackAlert(start, { alert: true, label })).toEqual({
+        knownAlert: true,
+        announcement: '',
+      });
     });
 
     it('announces the switch to alert, with its label', () => {
-      expect(backupAnnouncement(false, true, label)).toBe('Alerte sauvegarde : Aucune sauvegarde');
+      expect(trackAlert({ knownAlert: false, announcement: '' }, { alert: true, label })).toEqual({
+        knownAlert: true,
+        announcement: 'Alerte sauvegarde : Aucune sauvegarde',
+      });
     });
 
     it('announces the return to normal', () => {
-      expect(backupAnnouncement(true, false, 'Dernière sauvegarde : aujourd’hui 16:30')).toBe(
-        'Sauvegarde : retour à la normale',
-      );
+      expect(
+        trackAlert(
+          { knownAlert: true, announcement: '' },
+          { alert: false, label: 'Dernière sauvegarde : aujourd’hui 16:30' },
+        ),
+      ).toEqual({ knownAlert: false, announcement: 'Sauvegarde : retour à la normale' });
     });
 
     it('announces nothing while the alert state does not change', () => {
-      expect(backupAnnouncement(false, false, label)).toBeNull();
-      expect(backupAnnouncement(true, true, label)).toBeNull();
+      expect(trackAlert({ knownAlert: false, announcement: '' }, { alert: false, label })).toEqual({
+        knownAlert: false,
+        announcement: '',
+      });
+      expect(trackAlert({ knownAlert: true, announcement: '' }, { alert: true, label })).toEqual({
+        knownAlert: true,
+        announcement: '',
+      });
+    });
+
+    it('keeps the last known state and announces nothing when the status is unknown', () => {
+      expect(trackAlert({ knownAlert: true, announcement: '' }, null)).toEqual({
+        knownAlert: true,
+        announcement: '',
+      });
+      expect(trackAlert(start, null)).toEqual({ knownAlert: null, announcement: '' });
     });
   });
 });

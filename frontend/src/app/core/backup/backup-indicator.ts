@@ -10,24 +10,27 @@ import {
   merge,
   of,
   scan,
+  shareReplay,
   startWith,
   switchMap,
+  timer,
 } from 'rxjs';
 import { BackupApi } from './backup-api';
-import { backupAlert, backupAnnouncement, backupLabel } from './backup-status';
+import { AlertTracking, backupAlert, backupLabel, trackAlert } from './backup-status';
 
 // L'appli peut rester ouverte plusieurs jours : l'état est relu, et l'ancienneté recalculée, toutes les heures
 const REFRESH_MS = 60 * 60 * 1000;
 
-interface Reading {
+// Le temps de laisser les lecteurs d'écran lire l'annonce : vidée ensuite, elle ne s'ajoute pas au libellé en navigation
+const ANNOUNCEMENT_MS = 5000;
+
+/** Ce que l'indicateur affiche après une lecture, avec le suivi de l'alerte qui décide de l'annonce. */
+interface View extends AlertTracking {
   label: string;
   alert: boolean;
 }
 
-interface View extends Reading {
-  /** Texte de la région annoncée aux lecteurs d'écran ; vide tant qu'aucun changement d'état n'a eu lieu. */
-  announcement: string;
-}
+const BEFORE_FIRST_READING: View = { label: '', alert: false, knownAlert: null, announcement: '' };
 
 /**
  * Date de la dernière sauvegarde dans la barre de titre, en alerte quand elle est trop ancienne, qu'il n'y en a
@@ -40,7 +43,7 @@ interface View extends Reading {
 @Component({
   selector: 'app-backup-indicator',
   template: `<span class="label">{{ view()?.label }}</span
-    ><span class="cdk-visually-hidden" role="status">{{ view()?.announcement }}</span>`,
+    ><span class="cdk-visually-hidden" role="status">{{ announcement() }}</span>`,
   styles: `
     :host {
       font: var(--mat-sys-body-medium);
@@ -68,26 +71,42 @@ export class BackupIndicator {
     filter(() => this.document.visibilityState === 'visible'),
   );
 
-  protected readonly view = toSignal(
-    merge(interval(REFRESH_MS), this.tabVisible$).pipe(
-      startWith(0),
-      // Une erreur est déjà affichée par l'intercepteur ; ici, l'état devient simplement inconnu
-      switchMap(() => this.api.status().pipe(catchError(() => of(null)))),
-      map((status): Reading => {
-        const now = new Date();
-        return { label: backupLabel(status, now), alert: backupAlert(status, now) !== 'none' };
+  private readonly views$ = merge(interval(REFRESH_MS), this.tabVisible$).pipe(
+    startWith(0),
+    // Une erreur est déjà affichée par l'intercepteur ; ici, l'état devient simplement inconnu
+    switchMap(() => this.api.status().pipe(catchError(() => of(null)))),
+    map((status) => {
+      const now = new Date();
+      return {
+        label: backupLabel(status, now),
+        alert: backupAlert(status, now) !== 'none',
+        known: status !== null,
+      };
+    }),
+    scan(
+      (previous: View, reading): View => ({
+        label: reading.label,
+        alert: reading.alert,
+        ...trackAlert(previous, reading.known ? reading : null),
       }),
-      scan(
-        (previous: View | null, reading): View => ({
-          ...reading,
-          // Une lecture sans changement d'état laisse l'annonce déjà faite en place : rien de nouveau à lire
-          announcement:
-            backupAnnouncement(previous?.alert ?? null, reading.alert, reading.label) ??
-            previous?.announcement ??
-            '',
-        }),
-        null,
+      BEFORE_FIRST_READING,
+    ),
+    shareReplay({ bufferSize: 1, refCount: true }),
+  );
+
+  protected readonly view = toSignal(this.views$);
+
+  // Chaque annonce est lue puis retirée : la région redevient vide, comme avant le premier changement d'état
+  protected readonly announcement = toSignal(
+    this.views$.pipe(
+      filter((view) => view.announcement !== ''),
+      switchMap((view) =>
+        timer(ANNOUNCEMENT_MS).pipe(
+          map(() => ''),
+          startWith(view.announcement),
+        ),
       ),
     ),
+    { initialValue: '' },
   );
 }

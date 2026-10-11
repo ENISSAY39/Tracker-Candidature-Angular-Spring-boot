@@ -47,7 +47,7 @@ export function backupAlert(status: BackupStatus | null, now: Date): BackupAlert
 
 /** Texte de l'indicateur, en heure locale : « Dernière sauvegarde : hier 14:32 ». */
 export function backupLabel(status: BackupStatus | null, now: Date): string {
-  if (status !== null && !status.available && status.required) {
+  if (backupAlert(status, now) === 'unreadable') {
     return 'Sauvegardes illisibles';
   }
   if (status === null || !status.available) {
@@ -67,23 +67,39 @@ export function backupLabel(status: BackupStatus | null, now: Date): string {
   );
 }
 
+/** Suivi de l'alerte d'une lecture à l'autre, pour n'annoncer aux lecteurs d'écran que les changements d'état. */
+export interface AlertTracking {
+  /** État d'alerte de la dernière lecture réussie ; `null` tant qu'aucune n'a réussi. */
+  knownAlert: boolean | null;
+  /** Texte à annoncer pour cette lecture ; vide quand rien ne change. */
+  announcement: string;
+}
+
 /**
- * Texte à annoncer aux lecteurs d'écran après une lecture, selon l'alerte précédente (`null` à la première lecture).
- * Seuls le passage en alerte et le retour à la normale sont annoncés, jamais le libellé au chargement : chaîne vide
- * à la première lecture, `null` quand rien ne change (l'annonce déjà faite reste en place).
+ * État de suivi après une lecture. Seuls le passage en alerte et le retour à la normale sont annoncés, jamais le
+ * libellé au chargement (première lecture) ni une lecture sans changement. Une lecture inconnue (`null`, appel HTTP
+ * en échec) ne change rien : l'alerte n'a pas cessé pour autant, et l'état précédent est gardé.
  */
-export function backupAnnouncement(
+export function trackAlert(
+  previous: AlertTracking,
+  reading: { alert: boolean; label: string } | null,
+): AlertTracking {
+  if (reading === null) {
+    return { knownAlert: previous.knownAlert, announcement: '' };
+  }
+  return { knownAlert: reading.alert, announcement: announcementFor(previous.knownAlert, reading) };
+}
+
+function announcementFor(
   previouslyInAlert: boolean | null,
-  inAlert: boolean,
-  label: string,
-): string | null {
-  if (previouslyInAlert === null) {
+  reading: { alert: boolean; label: string },
+): string {
+  if (previouslyInAlert === null || previouslyInAlert === reading.alert) {
     return '';
   }
-  if (previouslyInAlert === inAlert) {
-    return null;
-  }
-  return inAlert ? `Alerte sauvegarde : ${label}` : 'Sauvegarde : retour à la normale';
+  return reading.alert
+    ? `Alerte sauvegarde : ${reading.label}`
+    : 'Sauvegarde : retour à la normale';
 }
 
 function isStale(lastBackupAt: string, now: Date): boolean {

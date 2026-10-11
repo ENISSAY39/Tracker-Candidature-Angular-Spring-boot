@@ -167,14 +167,42 @@ describe('BackupIndicator', () => {
       expect(announcement()).toBe('Sauvegarde : retour à la normale');
     });
 
+    it('empties the announcement after a few seconds, so that browsing does not read it', () => {
+      respond(fresh());
+      refresh({ ...fresh(), lastAttemptFailed: true });
+      expect(announcement()).not.toBe('');
+
+      vi.advanceTimersByTime(10_000);
+      fixture.detectChanges();
+
+      expect(announcement()).toBe('');
+    });
+
     it('announces nothing again while the alert state does not change', () => {
       respond(fresh());
       refresh({ ...fresh(), lastAttemptFailed: true });
-      const announced = announcement();
+      vi.advanceTimersByTime(10_000);
 
       refresh({ ...fresh(), lastAttemptFailed: true, lastBackupAt: null });
 
-      expect(announcement()).toBe(announced);
+      expect(announcement()).toBe('');
+    });
+
+    it('announces no return to normal when the API fails while in alert', () => {
+      respond({ ...fresh(), lastAttemptFailed: true });
+
+      vi.advanceTimersByTime(60 * 60 * 1000);
+      backend
+        .expectOne('/api/backup/status')
+        .flush(null, { status: 500, statusText: 'Internal Server Error' });
+      fixture.detectChanges();
+
+      expect(label()).toBe('Sauvegarde : état indisponible');
+      expect(announcement()).toBe('');
+
+      // La reprise de l'API, toujours en alerte, n'annonce rien non plus : l'alerte n'avait pas cessé
+      refresh({ ...fresh(), lastAttemptFailed: true });
+      expect(announcement()).toBe('');
     });
   });
 });
