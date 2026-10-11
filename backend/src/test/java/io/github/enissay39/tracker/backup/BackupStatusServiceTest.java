@@ -23,7 +23,7 @@ class BackupStatusServiceTest {
 		backup("tracker-2026-10-09_1432.sql", "2026-10-09T12:32:05Z");
 		backup("tracker-2026-10-07_2317.sql", "2026-10-07T21:17:40Z");
 
-		assertThat(status()).isEqualTo(new BackupStatusResponse(true, Instant.parse("2026-10-09T12:32:05Z"), false));
+		assertThat(status()).isEqualTo(new BackupStatusResponse(true, Instant.parse("2026-10-09T12:32:05Z"), false, false));
 	}
 
 	@Test
@@ -46,7 +46,7 @@ class BackupStatusServiceTest {
 
 	@Test
 	void reportsNoBackupInAnEmptyDirectory() {
-		assertThat(status()).isEqualTo(new BackupStatusResponse(true, null, false));
+		assertThat(status()).isEqualTo(new BackupStatusResponse(true, null, false, false));
 	}
 
 	@Test
@@ -54,32 +54,55 @@ class BackupStatusServiceTest {
 		backup("tracker-2026-10-08_0900.sql", "2026-10-08T07:00:00Z");
 		backup(".last-backup-failed", "2026-10-09T12:33:00Z");
 
-		assertThat(status()).isEqualTo(new BackupStatusResponse(true, Instant.parse("2026-10-08T07:00:00Z"), true));
+		assertThat(status()).isEqualTo(new BackupStatusResponse(true, Instant.parse("2026-10-08T07:00:00Z"), true, false));
 	}
 
 	@Test
 	void reportsAFailedLastAttemptEvenWithoutAnyBackup() throws IOException {
 		backup(".last-backup-failed", "2026-10-09T12:33:00Z");
 
-		assertThat(status()).isEqualTo(new BackupStatusResponse(true, null, true));
+		assertThat(status()).isEqualTo(new BackupStatusResponse(true, null, true, false));
 	}
 
 	@Test
 	void isUnavailableWhenTheDirectoryIsMissing() {
-		BackupStatusService service = new BackupStatusService(directory.resolve("absent").toString());
+		BackupStatusService service = new BackupStatusService(directory.resolve("absent").toString(), false);
 
-		assertThat(service.status()).isEqualTo(new BackupStatusResponse(false, null, false));
+		assertThat(service.status()).isEqualTo(new BackupStatusResponse(false, null, false, false));
 	}
 
 	@Test
 	void isUnavailableWhenThePathIsNotADirectory() throws IOException {
 		Path file = Files.createFile(directory.resolve("fichier-fictif"));
 
-		assertThat(new BackupStatusService(file.toString()).status()).isEqualTo(new BackupStatusResponse(false, null, false));
+		assertThat(new BackupStatusService(file.toString(), false).status()).isEqualTo(new BackupStatusResponse(false, null, false, false));
+	}
+
+	@Test
+	void tellsWhetherTheBackupFolderIsRequired() throws IOException {
+		backup("tracker-2026-10-08_0900.sql", "2026-10-08T07:00:00Z");
+
+		assertThat(new BackupStatusService(directory.toString(), true).status())
+			.isEqualTo(new BackupStatusResponse(true, Instant.parse("2026-10-08T07:00:00Z"), false, true));
+	}
+
+	@Test
+	void isUnavailableButRequiredWhenTheRequiredFolderIsMissing() {
+		BackupStatusService service = new BackupStatusService(directory.resolve("absent").toString(), true);
+
+		assertThat(service.status()).isEqualTo(new BackupStatusResponse(false, null, false, true));
+	}
+
+	@Test
+	void isUnavailableButRequiredWhenTheRequiredFolderCannotBeRead() throws IOException {
+		Path file = Files.createFile(directory.resolve("fichier-fictif"));
+
+		assertThat(new BackupStatusService(file.toString(), true).status())
+			.isEqualTo(new BackupStatusResponse(false, null, false, true));
 	}
 
 	private BackupStatusResponse status() {
-		return new BackupStatusService(directory.toString()).status();
+		return new BackupStatusService(directory.toString(), false).status();
 	}
 
 	private void backup(String name, String modifiedAt) throws IOException {

@@ -32,3 +32,6 @@ tracker:
     # Dossier des sauvegardes, lu pour afficher la dernière dans l'appli ; relatif à backend/ en dev local,
     # /backups en conteneur (TRACKER_BACKUP_DIRECTORY). À surcharger si BACKUP_DIR vise un autre dossier.
     directory: ../data/backups
+    # Vrai en conteneur (TRACKER_BACKUP_REQUIRED) : un dossier illisible y signale un montage cassé, et l'indicateur
+    # de la barre de titre passe en alerte. Faux en dev local, où l'API ne voit pas forcément le dossier.
+    required: false

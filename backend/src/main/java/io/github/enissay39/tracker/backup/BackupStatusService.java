@@ -25,25 +25,28 @@ public class BackupStatusService {
 	private static final Pattern BACKUP_FILE_NAME = Pattern
 		.compile("tracker-[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4}([0-9]{2})?[.]sql");
 
-	private static final BackupStatusResponse UNAVAILABLE = new BackupStatusResponse(false, null, false);
-
 	// Posé par scripts/backup.sh après un échec, retiré après une sauvegarde réussie
 	private static final String FAILURE_MARKER = ".last-backup-failed";
 
 	private final Path directory;
 
-	public BackupStatusService(@Value("${tracker.backup.directory}") String directory) {
+	private final boolean required;
+
+	public BackupStatusService(@Value("${tracker.backup.directory}") String directory,
+			@Value("${tracker.backup.required}") boolean required) {
 		this.directory = Path.of(directory);
+		this.required = required;
 	}
 
 	/**
 	 * Date de modification de la sauvegarde la plus récente, comme le {@code healthcheck} du service
 	 * {@code backup} : le nom du fichier porte une heure locale, sans fuseau. La dernière tentative a échoué quand
-	 * le marqueur d'échec est présent. Un dossier absent ou illisible donne un état indisponible, jamais une erreur.
+	 * le marqueur d'échec est présent. Un dossier absent ou illisible donne un état indisponible, jamais une erreur ;
+	 * {@code required} dit si cette indisponibilité doit alerter (conteneur) ou non (dev local).
 	 */
 	public BackupStatusResponse status() {
 		if (!Files.isDirectory(directory)) {
-			return UNAVAILABLE;
+			return unavailable();
 		}
 		Instant latest = null;
 		try (DirectoryStream<Path> files = Files.newDirectoryStream(directory, "tracker-*.sql")) {
@@ -55,9 +58,13 @@ public class BackupStatusService {
 			}
 		}
 		catch (IOException | DirectoryIteratorException | SecurityException ex) {
-			return UNAVAILABLE;
+			return unavailable();
 		}
-		return new BackupStatusResponse(true, latest, Files.exists(directory.resolve(FAILURE_MARKER)));
+		return new BackupStatusResponse(true, latest, Files.exists(directory.resolve(FAILURE_MARKER)), required);
+	}
+
+	private BackupStatusResponse unavailable() {
+		return new BackupStatusResponse(false, null, false, required);
 	}
 
 	private static Instant backupTime(Path file) {

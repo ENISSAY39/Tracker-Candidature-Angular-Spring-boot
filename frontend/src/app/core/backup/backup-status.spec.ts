@@ -1,11 +1,16 @@
-import { BackupStatus, backupAlert, backupLabel } from './backup-status';
+import { BackupStatus, backupAlert, backupLabel, trackAlert } from './backup-status';
 
 describe('backup status', () => {
   // Samedi 10 octobre 2026, 16:00, heure locale
   const now = new Date(2026, 9, 10, 16, 0);
 
   function backedUpAt(date: Date, lastAttemptFailed = false): BackupStatus {
-    return { available: true, lastBackupAt: date.toISOString(), lastAttemptFailed };
+    return {
+      available: true,
+      lastBackupAt: date.toISOString(),
+      lastAttemptFailed,
+      required: false,
+    };
   }
 
   describe('backupAlert', () => {
@@ -21,7 +26,10 @@ describe('backup status', () => {
 
     it('is missing when the folder holds no backup', () => {
       expect(
-        backupAlert({ available: true, lastBackupAt: null, lastAttemptFailed: false }, now),
+        backupAlert(
+          { available: true, lastBackupAt: null, lastAttemptFailed: false, required: false },
+          now,
+        ),
       ).toBe('missing');
     });
 
@@ -29,15 +37,30 @@ describe('backup status', () => {
       expect(backupAlert(backedUpAt(new Date(2026, 9, 10, 15, 59), true), now)).toBe('failed');
       expect(backupAlert(backedUpAt(new Date(2026, 9, 7, 23, 17), true), now)).toBe('failed');
       expect(
-        backupAlert({ available: true, lastBackupAt: null, lastAttemptFailed: true }, now),
+        backupAlert(
+          { available: true, lastBackupAt: null, lastAttemptFailed: true, required: false },
+          now,
+        ),
       ).toBe('failed');
     });
 
     it('is none when the folder is unavailable or the status unknown', () => {
       expect(
-        backupAlert({ available: false, lastBackupAt: null, lastAttemptFailed: false }, now),
+        backupAlert(
+          { available: false, lastBackupAt: null, lastAttemptFailed: false, required: false },
+          now,
+        ),
       ).toBe('none');
       expect(backupAlert(null, now)).toBe('none');
+    });
+
+    it('is unreadable when the folder is unavailable but required, as in a container', () => {
+      expect(
+        backupAlert(
+          { available: false, lastBackupAt: null, lastAttemptFailed: false, required: true },
+          now,
+        ),
+      ).toBe('unreadable');
     });
   });
 
@@ -71,21 +94,90 @@ describe('backup status', () => {
         'Dernière sauvegarde : 07/10/2026 23:17 (plus de 48 h, dernière tentative en échec)',
       );
       expect(
-        backupLabel({ available: true, lastBackupAt: null, lastAttemptFailed: true }, now),
+        backupLabel(
+          { available: true, lastBackupAt: null, lastAttemptFailed: true, required: false },
+          now,
+        ),
       ).toBe('Aucune sauvegarde (dernière tentative en échec)');
     });
 
     it('says so when there is no backup', () => {
       expect(
-        backupLabel({ available: true, lastBackupAt: null, lastAttemptFailed: false }, now),
+        backupLabel(
+          { available: true, lastBackupAt: null, lastAttemptFailed: false, required: false },
+          now,
+        ),
       ).toBe('Aucune sauvegarde');
     });
 
     it('says so when the folder is unavailable or the status unknown', () => {
       expect(
-        backupLabel({ available: false, lastBackupAt: null, lastAttemptFailed: false }, now),
+        backupLabel(
+          { available: false, lastBackupAt: null, lastAttemptFailed: false, required: false },
+          now,
+        ),
       ).toBe('Sauvegarde : état indisponible');
       expect(backupLabel(null, now)).toBe('Sauvegarde : état indisponible');
+    });
+
+    it('says the backups are unreadable when the folder is unavailable but required', () => {
+      expect(
+        backupLabel(
+          { available: false, lastBackupAt: null, lastAttemptFailed: false, required: true },
+          now,
+        ),
+      ).toBe('Sauvegardes illisibles');
+    });
+  });
+
+  describe('trackAlert', () => {
+    const start = { knownAlert: null, announcement: '' };
+    const label = 'Aucune sauvegarde';
+
+    it('announces nothing on the first reading, alert or not', () => {
+      expect(trackAlert(start, { alert: false, label })).toEqual({
+        knownAlert: false,
+        announcement: '',
+      });
+      expect(trackAlert(start, { alert: true, label })).toEqual({
+        knownAlert: true,
+        announcement: '',
+      });
+    });
+
+    it('announces the switch to alert, with its label', () => {
+      expect(trackAlert({ knownAlert: false, announcement: '' }, { alert: true, label })).toEqual({
+        knownAlert: true,
+        announcement: 'Alerte sauvegarde : Aucune sauvegarde',
+      });
+    });
+
+    it('announces the return to normal', () => {
+      expect(
+        trackAlert(
+          { knownAlert: true, announcement: '' },
+          { alert: false, label: 'Dernière sauvegarde : aujourd’hui 16:30' },
+        ),
+      ).toEqual({ knownAlert: false, announcement: 'Sauvegarde : retour à la normale' });
+    });
+
+    it('announces nothing while the alert state does not change', () => {
+      expect(trackAlert({ knownAlert: false, announcement: '' }, { alert: false, label })).toEqual({
+        knownAlert: false,
+        announcement: '',
+      });
+      expect(trackAlert({ knownAlert: true, announcement: '' }, { alert: true, label })).toEqual({
+        knownAlert: true,
+        announcement: '',
+      });
+    });
+
+    it('keeps the last known state and announces nothing when the status is unknown', () => {
+      expect(trackAlert({ knownAlert: true, announcement: '' }, null)).toEqual({
+        knownAlert: true,
+        announcement: '',
+      });
+      expect(trackAlert(start, null)).toEqual({ knownAlert: null, announcement: '' });
     });
   });
 });
