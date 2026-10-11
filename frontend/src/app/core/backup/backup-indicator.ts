@@ -1,19 +1,46 @@
+import { DOCUMENT } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { catchError, interval, map, of, startWith, switchMap } from 'rxjs';
+import {
+  catchError,
+  filter,
+  fromEvent,
+  interval,
+  map,
+  merge,
+  of,
+  scan,
+  startWith,
+  switchMap,
+} from 'rxjs';
 import { BackupApi } from './backup-api';
-import { backupAlert, backupLabel } from './backup-status';
+import { backupAlert, backupAnnouncement, backupLabel } from './backup-status';
 
 // L'appli peut rester ouverte plusieurs jours : l'état est relu, et l'ancienneté recalculée, toutes les heures
 const REFRESH_MS = 60 * 60 * 1000;
 
+interface Reading {
+  label: string;
+  alert: boolean;
+}
+
+interface View extends Reading {
+  /** Texte de la région annoncée aux lecteurs d'écran ; vide tant qu'aucun changement d'état n'a eu lieu. */
+  announcement: string;
+}
+
 /**
  * Date de la dernière sauvegarde dans la barre de titre, en alerte quand elle est trop ancienne, qu'il n'y en a
- * aucune ou que la dernière tentative a échoué. Affichage seul : sauvegarder et restaurer restent des commandes.
+ * aucune, que la dernière tentative a échoué ou que le dossier requis est illisible. Affichage seul : sauvegarder
+ * et restaurer restent des commandes.
+ *
+ * Le libellé est du texte lisible à la navigation, sans région annoncée : les lecteurs d'écran n'entendent que le
+ * passage en alerte et le retour à la normale, dans une région à part, jamais le libellé au chargement.
  */
 @Component({
   selector: 'app-backup-indicator',
-  template: `{{ view()?.label }}`,
+  template: `<span class="label">{{ view()?.label }}</span
+    ><span class="cdk-visually-hidden" role="status">{{ view()?.announcement }}</span>`,
   styles: `
     :host {
       font: var(--mat-sys-body-medium);
@@ -29,23 +56,38 @@ const REFRESH_MS = 60 * 60 * 1000;
     }
   `,
   host: {
-    // Région polie : un passage en alerte pendant que l'appli est ouverte est annoncé par les lecteurs d'écran
-    role: 'status',
     '[class.alert]': 'view()?.alert',
   },
 })
 export class BackupIndicator {
   private readonly api = inject(BackupApi);
+  private readonly document = inject(DOCUMENT);
+
+  // Le retour de veille ou le changement de jour passent par ici : l'onglet redevient visible
+  private readonly tabVisible$ = fromEvent(this.document, 'visibilitychange').pipe(
+    filter(() => this.document.visibilityState === 'visible'),
+  );
 
   protected readonly view = toSignal(
-    interval(REFRESH_MS).pipe(
+    merge(interval(REFRESH_MS), this.tabVisible$).pipe(
       startWith(0),
       // Une erreur est déjà affichée par l'intercepteur ; ici, l'état devient simplement inconnu
       switchMap(() => this.api.status().pipe(catchError(() => of(null)))),
-      map((status) => {
+      map((status): Reading => {
         const now = new Date();
         return { label: backupLabel(status, now), alert: backupAlert(status, now) !== 'none' };
       }),
+      scan(
+        (previous: View | null, reading): View => ({
+          ...reading,
+          // Une lecture sans changement d'état laisse l'annonce déjà faite en place : rien de nouveau à lire
+          announcement:
+            backupAnnouncement(previous?.alert ?? null, reading.alert, reading.label) ??
+            previous?.announcement ??
+            '',
+        }),
+        null,
+      ),
     ),
   );
 }

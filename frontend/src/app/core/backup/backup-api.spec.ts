@@ -24,6 +24,7 @@ describe('BackupApi', () => {
       available: true,
       lastBackupAt: '2026-10-09T12:32:05Z',
       lastAttemptFailed: false,
+      required: true,
     };
     const result = firstValueFrom(api.status());
 

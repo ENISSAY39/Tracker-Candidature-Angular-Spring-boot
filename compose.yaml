@@ -52,6 +52,8 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-tracker}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-tracker}
       TRACKER_BACKUP_DIRECTORY: /backups
+      # En conteneur, un dossier des sauvegardes illisible signale un montage cassé : l'appli le dit en alerte
+      TRACKER_BACKUP_REQUIRED: "true"
     volumes:
       # Lecture seule : l'appli affiche la date de la dernière sauvegarde, elle n'en écrit ni n'en restaure aucune
       - ${BACKUP_DIR:-./data/backups}:/backups:ro

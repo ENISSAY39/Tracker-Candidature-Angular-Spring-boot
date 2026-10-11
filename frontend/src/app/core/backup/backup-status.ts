@@ -8,13 +8,15 @@ export interface BackupStatus {
   lastBackupAt: string | null;
   /** Vrai quand la dernière tentative de sauvegarde a échoué, quel que soit l'âge de la dernière réussie. */
   lastAttemptFailed: boolean;
+  /** Vrai en conteneur : un dossier indisponible y signale un montage cassé, pas un simple dev local. */
+  required: boolean;
 }
 
 /**
- * Alerte sur les sauvegardes : la dernière tentative a échoué, la plus récente est trop ancienne, il n'y en a
- * aucune, ou rien à signaler. Un échec prime sur les autres alertes.
+ * Alerte sur les sauvegardes : le dossier est illisible alors qu'il est requis, la dernière tentative a échoué, la
+ * plus récente est trop ancienne, il n'y en a aucune, ou rien à signaler. Un échec prime sur les autres alertes.
  */
-export type BackupAlert = 'failed' | 'stale' | 'missing' | 'none';
+export type BackupAlert = 'unreadable' | 'failed' | 'stale' | 'missing' | 'none';
 
 // Même seuil que le healthcheck du service backup
 const STALE_AFTER_HOURS = 48;
@@ -23,12 +25,16 @@ const STALE_AFTER_MS = STALE_AFTER_HOURS * 60 * 60 * 1000;
 const FAILED_NOTE = 'dernière tentative en échec';
 
 /**
- * Alerte à l'instant `now` (fourni par l'appelant). Aucune alerte quand l'état est inconnu (`null`) ou le
- * dossier indisponible : en dev local, le backend ne voit pas forcément les sauvegardes.
+ * Alerte à l'instant `now` (fourni par l'appelant). Un dossier indisponible n'alerte que s'il est requis (en
+ * conteneur) : en dev local, le backend ne voit pas forcément les sauvegardes. Aucune alerte non plus quand l'état
+ * est inconnu (`null`), l'intercepteur affichant déjà l'erreur de l'appel.
  */
 export function backupAlert(status: BackupStatus | null, now: Date): BackupAlert {
-  if (status === null || !status.available) {
+  if (status === null) {
     return 'none';
+  }
+  if (!status.available) {
+    return status.required ? 'unreadable' : 'none';
   }
   if (status.lastAttemptFailed) {
     return 'failed';
@@ -41,6 +47,9 @@ export function backupAlert(status: BackupStatus | null, now: Date): BackupAlert
 
 /** Texte de l'indicateur, en heure locale : « Dernière sauvegarde : hier 14:32 ». */
 export function backupLabel(status: BackupStatus | null, now: Date): string {
+  if (status !== null && !status.available && status.required) {
+    return 'Sauvegardes illisibles';
+  }
   if (status === null || !status.available) {
     return 'Sauvegarde : état indisponible';
   }
@@ -56,6 +65,25 @@ export function backupLabel(status: BackupStatus | null, now: Date): string {
     `Dernière sauvegarde : ${dayAndTime(new Date(status.lastBackupAt), now)}`,
     notes,
   );
+}
+
+/**
+ * Texte à annoncer aux lecteurs d'écran après une lecture, selon l'alerte précédente (`null` à la première lecture).
+ * Seuls le passage en alerte et le retour à la normale sont annoncés, jamais le libellé au chargement : chaîne vide
+ * à la première lecture, `null` quand rien ne change (l'annonce déjà faite reste en place).
+ */
+export function backupAnnouncement(
+  previouslyInAlert: boolean | null,
+  inAlert: boolean,
+  label: string,
+): string | null {
+  if (previouslyInAlert === null) {
+    return '';
+  }
+  if (previouslyInAlert === inAlert) {
+    return null;
+  }
+  return inAlert ? `Alerte sauvegarde : ${label}` : 'Sauvegarde : retour à la normale';
 }
 
 function isStale(lastBackupAt: string, now: Date): boolean {
